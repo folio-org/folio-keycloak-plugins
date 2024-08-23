@@ -6,7 +6,7 @@
 
   <groupId>org.folio.keycloak</groupId>
   <artifactId>folio-keycloak-plugins</artifactId>
-  <version>1.0</version>
+  <version>1.0.0</version>
   <packaging>pom</packaging>
 
   <properties>
@@ -84,6 +84,52 @@
       </plugins>
     </pluginManagement>
   </build>
+
+  <repositories>
+    <repository>
+      <id>folio-nexus</id>
+      <name>FOLIO Maven repository</name>
+      <url>https://repository.folio.org/repository/maven-folio</url>
+    </repository>
+
+    <repository>
+      <id>index-data-nexus</id>
+      <name>FOLIO Maven repository</name>
+      <url>https://maven.indexdata.com</url>
+    </repository>
+  </repositories>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>folio-nexus</id>
+      <name>FOLIO Maven repository</name>
+      <url>https://repository.folio.org/repository/maven-folio</url>
+    </pluginRepository>
+  </pluginRepositories>
+
+  <distributionManagement>
+    <repository>
+      <id>folio-nexus</id>
+      <name>FOLIO Release Repository</name>
+      <url>https://repository.folio.org/repository/maven-releases/</url>
+      <uniqueVersion>false</uniqueVersion>
+      <layout>default</layout>
+    </repository>
+    <snapshotRepository>
+      <id>folio-nexus</id>
+      <name>FOLIO Snapshot Repository</name>
+      <uniqueVersion>true</uniqueVersion>
+      <url>https://repository.folio.org/repository/maven-snapshots/</url>
+      <layout>default</layout>
+    </snapshotRepository>
+  </distributionManagement>
+
+  <scm>
+    <url>https://github.com/folio-org/folio-keycloak-plugins</url>
+    <connection>scm:git:git://github.com:folio-org/folio-keycloak-plugins.git</connection>
+    <developerConnection>scm:git:git@github.com:folio-org/folio-keycloak-plugins.git</developerConnection>
+    <tag>v1.0.0</tag>
+  </scm>
 
   <modules>
     <module>detect-folio-user</module>

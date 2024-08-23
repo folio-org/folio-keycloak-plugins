@@ -7,12 +7,12 @@
   <parent>
     <groupId>org.folio.keycloak</groupId>
     <artifactId>folio-keycloak-plugins</artifactId>
-    <version>1.0</version>
+    <version>1.0.0</version>
   </parent>
 
   <groupId>org.folio.authentication</groupId>
   <artifactId>keycloak-detect-folio-user</artifactId>
-  <version>1.0</version>
+  <version>1.0.0</version>
 
   <properties>
     <jar.finalName>${project.artifactId}-${project.version}</jar.finalName>
