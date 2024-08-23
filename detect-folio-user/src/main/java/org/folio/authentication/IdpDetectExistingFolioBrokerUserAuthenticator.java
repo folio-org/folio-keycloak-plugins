@@ -5,23 +5,40 @@ import org.keycloak.authentication.authenticators.broker.IdpDetectExistingBroker
 import org.keycloak.authentication.authenticators.broker.util.ExistingUserInfo;
 import org.keycloak.authentication.authenticators.broker.util.SerializedBrokeredIdentityContext;
 import org.keycloak.broker.provider.BrokeredIdentityContext;
+import org.keycloak.models.AuthenticatorConfigModel;
 import org.keycloak.models.UserModel;
 
 import java.util.Optional;
 
 public class IdpDetectExistingFolioBrokerUserAuthenticator extends IdpDetectExistingBrokerUserAuthenticator {
 
-    @Override
-    protected ExistingUserInfo checkExistingUser(AuthenticationFlowContext context, String username, SerializedBrokeredIdentityContext serializedCtx, BrokeredIdentityContext brokerContext) {
-        Optional<UserModel> existingUser;
-        if (brokerContext.getEmail() != null && !context.getRealm().isDuplicateEmailsAllowed()) {
-            existingUser = context.getSession().users().searchForUserByUserAttributeStream(context.getRealm(), "externalId", brokerContext.getEmail()).findFirst();
-            if (existingUser.isPresent()) {
-                return new ExistingUserInfo(existingUser.get().getId(), UserModel.EMAIL, existingUser.get().getEmail());
-            }
-        }
+  @Override
+  protected ExistingUserInfo checkExistingUser(AuthenticationFlowContext context, String username,
+    SerializedBrokeredIdentityContext serializedCtx, BrokeredIdentityContext brokerContext) {
 
-        existingUser = context.getSession().users().searchForUserByUserAttributeStream(context.getRealm(), "externalId", username).findFirst();
-        return existingUser.map(userModel -> new ExistingUserInfo(userModel.getId(), UserModel.USERNAME, userModel.getUsername())).orElse(null);
+    var externalIdAttrName = "externalId";
+    var config = context.getAuthenticatorConfig();
+    if (config != null) {
+      externalIdAttrName = config.getConfig()
+        .getOrDefault(IdpDetectExistingFolioBrokerUserAuthenticatorFactory.EXTERNAL_ID_PROPERTY_NAME,
+          externalIdAttrName);
     }
+    if (brokerContext.getEmail() != null && !context.getRealm().isDuplicateEmailsAllowed()) {
+      var matchingUsers = context.getSession().users()
+        .searchForUserByUserAttributeStream(context.getRealm(), externalIdAttrName, brokerContext.getEmail()).toList();
+      if (matchingUsers.size() == 1) {
+        return toExistingUserInfo(matchingUsers.get(0), true);
+      }
+    }
+
+    var matchingUsers =
+      context.getSession().users().searchForUserByUserAttributeStream(context.getRealm(), externalIdAttrName, username)
+        .toList();
+    return matchingUsers.size() == 1 ? toExistingUserInfo(matchingUsers.get(0), false) : null;
+  }
+
+  private ExistingUserInfo toExistingUserInfo(UserModel user, boolean matchedByEmail) {
+    return new ExistingUserInfo(user.getId(), matchedByEmail ? UserModel.EMAIL : UserModel.USERNAME,
+      matchedByEmail ? user.getEmail() : user.getUsername());
+  }
 }
