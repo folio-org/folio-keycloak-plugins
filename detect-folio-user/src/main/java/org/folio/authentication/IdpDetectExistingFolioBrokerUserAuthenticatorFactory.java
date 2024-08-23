@@ -1,5 +1,6 @@
 package org.folio.authentication;
 
+import java.util.List;
 import org.keycloak.Config;
 import org.keycloak.authentication.Authenticator;
 import org.keycloak.authentication.AuthenticatorFactory;
@@ -8,9 +9,8 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.provider.ProviderConfigProperty;
 
-import java.util.List;
-
 public class IdpDetectExistingFolioBrokerUserAuthenticatorFactory implements AuthenticatorFactory {
+
   public static final String EXTERNAL_ID_PROPERTY_NAME = "externalIdAttributeName";
   public static final String PROVIDER_ID = "idp-detect-folio-broker-user";
   private static final IdpDetectExistingFolioBrokerUserAuthenticator SINGLETON =
@@ -58,7 +58,8 @@ public class IdpDetectExistingFolioBrokerUserAuthenticatorFactory implements Aut
 
   @Override
   public String getHelpText() {
-    return "Detect if there is an existing Keycloak account with same externalId attribute like identity provider. If no, throw an error.";
+    return "Detect if there is an existing Keycloak account "
+      + "with same externalId attribute like identity provider. If no, throw an error.";
   }
 
   @Override

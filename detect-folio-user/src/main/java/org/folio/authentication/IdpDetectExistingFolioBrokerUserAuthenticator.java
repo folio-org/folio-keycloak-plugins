@@ -5,10 +5,7 @@ import org.keycloak.authentication.authenticators.broker.IdpDetectExistingBroker
 import org.keycloak.authentication.authenticators.broker.util.ExistingUserInfo;
 import org.keycloak.authentication.authenticators.broker.util.SerializedBrokeredIdentityContext;
 import org.keycloak.broker.provider.BrokeredIdentityContext;
-import org.keycloak.models.AuthenticatorConfigModel;
 import org.keycloak.models.UserModel;
-
-import java.util.Optional;
 
 public class IdpDetectExistingFolioBrokerUserAuthenticator extends IdpDetectExistingBrokerUserAuthenticator {
 
