@@ -16,6 +16,8 @@
 
   <properties>
     <jar.finalName>${project.artifactId}-${project.version}</jar.finalName>
+    <junit-jupiter.version>5.11.0</junit-jupiter.version>
+    <mockito-junit-jupiter.version>5.12.0</mockito-junit-jupiter.version>
   </properties>
 
   <dependencies>
@@ -48,6 +50,19 @@
       <artifactId>keycloak-saml-core-public</artifactId>
       <scope>provided</scope>
       <version>${keycloak.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>${junit-jupiter.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>${mockito-junit-jupiter.version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 

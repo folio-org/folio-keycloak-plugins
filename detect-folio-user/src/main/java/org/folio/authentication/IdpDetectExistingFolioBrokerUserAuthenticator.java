@@ -1,5 +1,8 @@
 package org.folio.authentication;
 
+import static org.keycloak.models.UserModel.EMAIL;
+import static org.keycloak.models.UserModel.USERNAME;
+
 import org.keycloak.authentication.AuthenticationFlowContext;
 import org.keycloak.authentication.authenticators.broker.IdpDetectExistingBrokerUserAuthenticator;
 import org.keycloak.authentication.authenticators.broker.util.ExistingUserInfo;
@@ -35,7 +38,7 @@ public class IdpDetectExistingFolioBrokerUserAuthenticator extends IdpDetectExis
   }
 
   private ExistingUserInfo toExistingUserInfo(UserModel user, boolean matchedByEmail) {
-    return new ExistingUserInfo(user.getId(), matchedByEmail ? UserModel.EMAIL : UserModel.USERNAME,
+    return new ExistingUserInfo(user.getId(), matchedByEmail ? EMAIL : USERNAME,
       matchedByEmail ? user.getEmail() : user.getUsername());
   }
 }
