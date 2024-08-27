@@ -1,13 +1,13 @@
 package org.folio.authentication;
 
-import static org.keycloak.models.AuthenticationExecutionModel.Requirement.DISABLED;
-import static org.keycloak.models.AuthenticationExecutionModel.Requirement.REQUIRED;
 import static org.folio.authentication.IdpDetectExistingFolioBrokerUserAuthenticatorFactory.EXTERNAL_ID_PROPERTY_NAME;
 import static org.folio.authentication.IdpDetectExistingFolioBrokerUserAuthenticatorFactory.PROVIDER_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.keycloak.models.AuthenticationExecutionModel.Requirement.DISABLED;
+import static org.keycloak.models.AuthenticationExecutionModel.Requirement.REQUIRED;
 import static org.keycloak.provider.ProviderConfigProperty.STRING_TYPE;
 import static org.mockito.Mockito.mock;
 
