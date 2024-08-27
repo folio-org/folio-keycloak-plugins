@@ -71,25 +71,26 @@ class IdpDetectExistingFolioBrokerUserAuthenticatorTest {
   @Test
   void auth_negative_matchManyByUsername() {
     var result = unit.checkExistingUser(mockAuthFlowContext("customIdAttr",
-      query -> Stream.of(mockUser("123", "user123", "hello@world"), mockUser("124", "user124", "bye@world")), true), "user123", null, mockIdentityContext("hello@world", "user123"));
+        query -> Stream.of(mockUser("123", "user123", "hello@world"), mockUser("124", "user124", "bye@world")), true),
+      "user123", null, mockIdentityContext("hello@world", "user123"));
     assertNull(result);
   }
 
   protected AuthenticationFlowContext mockAuthFlowContext(String externalIdAttrName,
     Function<String, Stream<UserModel>> usersProviderMock, boolean allowDuplicateEmails) {
     var result = mock(AuthenticationFlowContext.class);
-    var realm = mock(RealmModel.class);
-    var authConfig = mock(AuthenticatorConfigModel.class);
-    var session = mock(KeycloakSession.class);
-    var userProvider = mock(UserProvider.class);
     var config = new HashMap<String, String>();
     if (externalIdAttrName != null) {
       config.put(IdpDetectExistingFolioBrokerUserAuthenticatorFactory.EXTERNAL_ID_PROPERTY_NAME, externalIdAttrName);
     }
+    var authConfig = mock(AuthenticatorConfigModel.class);
     lenient().when(result.getAuthenticatorConfig()).thenReturn(authConfig);
     lenient().when(authConfig.getConfig()).thenReturn(config);
+    var session = mock(KeycloakSession.class);
     lenient().when(result.getSession()).thenReturn(session);
+    var userProvider = mock(UserProvider.class);
     lenient().when(session.users()).thenReturn(userProvider);
+    var realm = mock(RealmModel.class);
     lenient().when(realm.isDuplicateEmailsAllowed()).thenReturn(allowDuplicateEmails);
     lenient().when(result.getRealm()).thenReturn(realm);
 
