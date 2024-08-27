@@ -1,5 +1,9 @@
 package org.folio.authentication;
 
+import static org.keycloak.models.AuthenticationExecutionModel.Requirement.DISABLED;
+import static org.keycloak.models.AuthenticationExecutionModel.Requirement.REQUIRED;
+import static org.keycloak.provider.ProviderConfigProperty.STRING_TYPE;
+
 import java.util.List;
 import org.keycloak.Config;
 import org.keycloak.authentication.Authenticator;
@@ -47,8 +51,7 @@ public class IdpDetectExistingFolioBrokerUserAuthenticatorFactory implements Aut
 
   @Override
   public AuthenticationExecutionModel.Requirement[] getRequirementChoices() {
-    return new AuthenticationExecutionModel.Requirement[] {AuthenticationExecutionModel.Requirement.REQUIRED,
-      AuthenticationExecutionModel.Requirement.DISABLED};
+    return new AuthenticationExecutionModel.Requirement[] {REQUIRED, DISABLED};
   }
 
   @Override
@@ -72,7 +75,7 @@ public class IdpDetectExistingFolioBrokerUserAuthenticatorFactory implements Aut
     var customProperty = new ProviderConfigProperty();
     customProperty.setName(EXTERNAL_ID_PROPERTY_NAME);
     customProperty.setLabel("User attribute containing external ID");
-    customProperty.setType(ProviderConfigProperty.STRING_TYPE);
+    customProperty.setType(STRING_TYPE);
     customProperty.setHelpText("The external ID attribute of a user profile should contain an email or a "
       + "username by which Keycloak user will be matched with the external user");
 
