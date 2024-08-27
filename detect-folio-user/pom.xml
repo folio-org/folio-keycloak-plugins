@@ -15,6 +15,11 @@
   <version>1.0.0</version>
 
   <properties>
+    <java.version>17</java.version>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.release>17</maven.compiler.release>
+    
     <jar.finalName>${project.artifactId}-${project.version}</jar.finalName>
     <junit-jupiter.version>5.11.0</junit-jupiter.version>
     <mockito-junit-jupiter.version>5.12.0</mockito-junit-jupiter.version>
@@ -88,7 +93,7 @@
           <release>${java.version}</release>
         </configuration>
       </plugin>
-      
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
