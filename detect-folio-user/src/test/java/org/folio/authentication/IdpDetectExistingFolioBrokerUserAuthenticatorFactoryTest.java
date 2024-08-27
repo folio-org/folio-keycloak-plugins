@@ -1,5 +1,7 @@
 package org.folio.authentication;
 
+import static org.keycloak.models.AuthenticationExecutionModel.Requirement.DISABLED;
+import static org.keycloak.models.AuthenticationExecutionModel.Requirement.REQUIRED;
 import static org.folio.authentication.IdpDetectExistingFolioBrokerUserAuthenticatorFactory.EXTERNAL_ID_PROPERTY_NAME;
 import static org.folio.authentication.IdpDetectExistingFolioBrokerUserAuthenticatorFactory.PROVIDER_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,6 +37,9 @@ class IdpDetectExistingFolioBrokerUserAuthenticatorFactoryTest {
       + "with same externalId attribute like identity provider. If no, throw an error.", unit.getHelpText());
     assertEquals("detectExistingFOLIOBrokerUser", unit.getReferenceCategory());
     assertFalse(unit.isUserSetupAllowed());
+    assertEquals(2, unit.getRequirementChoices().length);
+    assertEquals(REQUIRED, unit.getRequirementChoices()[0]);
+    assertEquals(DISABLED, unit.getRequirementChoices()[1]);
   }
 
   @Test
