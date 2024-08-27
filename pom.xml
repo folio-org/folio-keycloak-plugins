@@ -11,6 +11,7 @@
 
   <properties>
     <java.version>17</java.version>
+    <maven.compiler.release>17</maven.compiler.release>
     <keycloak.version>25.0.1</keycloak.version>
 
     <!-- Plugins versions -->
