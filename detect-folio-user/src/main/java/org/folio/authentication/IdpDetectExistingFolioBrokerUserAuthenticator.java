@@ -1,5 +1,7 @@
 package org.folio.authentication;
 
+import static org.folio.authentication.IdpDetectExistingFolioBrokerUserAuthenticatorFactory.EXTERNAL_ID_PROPERTY_DEFAULT_VALUE;
+import static org.folio.authentication.IdpDetectExistingFolioBrokerUserAuthenticatorFactory.EXTERNAL_ID_PROPERTY_NAME;
 import static org.keycloak.models.UserModel.EMAIL;
 import static org.keycloak.models.UserModel.USERNAME;
 
@@ -16,12 +18,10 @@ public class IdpDetectExistingFolioBrokerUserAuthenticator extends IdpDetectExis
   protected ExistingUserInfo checkExistingUser(AuthenticationFlowContext context, String username,
     SerializedBrokeredIdentityContext serializedCtx, BrokeredIdentityContext brokerContext) {
 
-    var externalIdAttrName = "externalId";
+    var externalIdAttrName = EXTERNAL_ID_PROPERTY_DEFAULT_VALUE;
     var config = context.getAuthenticatorConfig();
     if (config != null) {
-      externalIdAttrName = config.getConfig()
-        .getOrDefault(IdpDetectExistingFolioBrokerUserAuthenticatorFactory.EXTERNAL_ID_PROPERTY_NAME,
-          externalIdAttrName);
+      externalIdAttrName = config.getConfig().getOrDefault(EXTERNAL_ID_PROPERTY_NAME, externalIdAttrName);
     }
     if (brokerContext.getEmail() != null && !context.getRealm().isDuplicateEmailsAllowed()) {
       var matchingUsers = context.getSession().users()
