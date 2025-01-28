@@ -14,7 +14,7 @@
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <maven.compiler.release>17</maven.compiler.release>
-    <keycloak.version>25.0.1</keycloak.version>
+    <keycloak.version>26.1.0</keycloak.version>
 
     <!-- Plugins versions -->
     <maven-clean-plugin.version>3.2.0</maven-clean-plugin.version>
