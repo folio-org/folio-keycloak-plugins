@@ -85,9 +85,11 @@ class FolioEcsUsernamePasswordFormTest {
   private AuthenticationSessionModel authSession;
   private RealmModel realm;
   private FreeMarkerLoginFormsProvider freeMarkerLoginFormsProvider;
+  @SuppressWarnings("rawtypes")
   private IdentityProviderFactory identityProviderFactory;
 
   @BeforeEach
+  @SuppressWarnings("unchecked")
   void setUp() {
     usernamePasswordForm = new FolioEcsUsernamePasswordForm();
 
@@ -249,7 +251,7 @@ class FolioEcsUsernamePasswordFormTest {
     when(context.getSession().removeAttribute("federatedIdentityModel")).thenReturn(federatedIdentityModel);
 
     when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getById(PROVIDER_ID)).thenReturn(createIdentityProviderModel());
+    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(createIdentityProviderModel());
     when(session.users()).thenReturn(userProvider);
     when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
     when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
@@ -281,7 +283,7 @@ class FolioEcsUsernamePasswordFormTest {
       var httpClientProvider = mock(HttpClientProvider.class);
       when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
       when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
-      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ID);
+      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
       when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
       when(context.getExecution()).thenReturn(executionModel);
       when(executionModel.getId()).thenReturn(EXECUTION_ID);
@@ -310,7 +312,7 @@ class FolioEcsUsernamePasswordFormTest {
     when(context.getSession().removeAttribute("federatedIdentityModel")).thenReturn(federatedIdentityModel);
 
     when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getById(PROVIDER_ID)).thenReturn(createIdentityProviderModel());
+    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(createIdentityProviderModel());
     when(session.users()).thenReturn(userProvider);
     when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
     when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
@@ -330,7 +332,7 @@ class FolioEcsUsernamePasswordFormTest {
     when(identityProviderFactory.create(any(), any())).thenReturn(oidcIdentityProvider);
     when(oidcIdentityProvider.getConfig()).thenReturn(config);
 
-    when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ID);
+    when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
     when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
     when(context.getExecution()).thenReturn(executionModel);
     when(executionModel.getId()).thenReturn(EXECUTION_ID);
@@ -358,7 +360,7 @@ class FolioEcsUsernamePasswordFormTest {
     when(context.getSession().removeAttribute("federatedIdentityModel")).thenReturn(federatedIdentityModel);
 
     when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getById(PROVIDER_ID)).thenReturn(null);
+    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(null);
     when(session.users()).thenReturn(userProvider);
     when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
     when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
@@ -390,7 +392,7 @@ class FolioEcsUsernamePasswordFormTest {
       var httpClientProvider = mock(HttpClientProvider.class);
       when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
       when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
-      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ID);
+      when(federatedIdentityModel.getIdentityProvider()).thenReturn(null);
       when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
       when(context.getExecution()).thenReturn(executionModel);
       when(executionModel.getId()).thenReturn(EXECUTION_ID);
@@ -421,7 +423,7 @@ class FolioEcsUsernamePasswordFormTest {
     var identityProviderModel = createIdentityProviderModel();
     identityProviderModel.setLinkOnly(true);
     when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getById(PROVIDER_ID)).thenReturn(identityProviderModel);
+    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(identityProviderModel);
     when(session.users()).thenReturn(userProvider);
     when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
     when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
@@ -453,7 +455,7 @@ class FolioEcsUsernamePasswordFormTest {
       var httpClientProvider = mock(HttpClientProvider.class);
       when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
       when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
-      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ID);
+      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
       when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
       when(context.getExecution()).thenReturn(executionModel);
       when(executionModel.getId()).thenReturn(EXECUTION_ID);
@@ -484,7 +486,7 @@ class FolioEcsUsernamePasswordFormTest {
     var identityProviderModel = createIdentityProviderModel();
     identityProviderModel.setEnabled(false);
     when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getById(PROVIDER_ID)).thenReturn(identityProviderModel);
+    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(identityProviderModel);
     when(session.users()).thenReturn(userProvider);
     when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
     when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
@@ -516,7 +518,7 @@ class FolioEcsUsernamePasswordFormTest {
       var httpClientProvider = mock(HttpClientProvider.class);
       when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
       when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
-      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ID);
+      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
       when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
       when(context.getExecution()).thenReturn(executionModel);
       when(executionModel.getId()).thenReturn(EXECUTION_ID);
@@ -545,7 +547,7 @@ class FolioEcsUsernamePasswordFormTest {
     when(context.getSession().removeAttribute("federatedIdentityModel")).thenReturn(federatedIdentityModel);
 
     when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getById(PROVIDER_ID)).thenReturn(createIdentityProviderModel());
+    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(createIdentityProviderModel());
     when(session.users()).thenReturn(userProvider);
     when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
     when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
@@ -569,7 +571,7 @@ class FolioEcsUsernamePasswordFormTest {
       var httpClientProvider = mock(HttpClientProvider.class);
       when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
       when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
-      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ID);
+      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
       when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
       when(context.getExecution()).thenReturn(executionModel);
       when(executionModel.getId()).thenReturn(EXECUTION_ID);
@@ -598,7 +600,7 @@ class FolioEcsUsernamePasswordFormTest {
     when(context.getSession().removeAttribute("federatedIdentityModel")).thenReturn(federatedIdentityModel);
 
     when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getById(PROVIDER_ID)).thenReturn(createIdentityProviderModel());
+    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(createIdentityProviderModel());
     when(session.users()).thenReturn(userProvider);
     when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
     when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
@@ -624,7 +626,7 @@ class FolioEcsUsernamePasswordFormTest {
       var httpClientProvider = mock(HttpClientProvider.class);
       when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
       when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
-      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ID);
+      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
       when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
       when(context.getExecution()).thenReturn(executionModel);
       when(executionModel.getId()).thenReturn(EXECUTION_ID);
@@ -653,7 +655,7 @@ class FolioEcsUsernamePasswordFormTest {
     when(context.getSession().removeAttribute("federatedIdentityModel")).thenReturn(federatedIdentityModel);
 
     when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getById(PROVIDER_ID)).thenReturn(createIdentityProviderModel());
+    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(createIdentityProviderModel());
     when(session.users()).thenReturn(userProvider);
     when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
     when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
@@ -684,7 +686,7 @@ class FolioEcsUsernamePasswordFormTest {
       var httpClientProvider = mock(HttpClientProvider.class);
       when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
       when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
-      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ID);
+      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
       when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
       when(context.getExecution()).thenReturn(executionModel);
       when(executionModel.getId()).thenReturn(EXECUTION_ID);
@@ -713,7 +715,7 @@ class FolioEcsUsernamePasswordFormTest {
     when(context.getSession().removeAttribute("federatedIdentityModel")).thenReturn(federatedIdentityModel);
 
     when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getById(PROVIDER_ID)).thenReturn(createIdentityProviderModel());
+    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(createIdentityProviderModel());
     when(session.users()).thenReturn(userProvider);
     when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
     when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
@@ -744,7 +746,7 @@ class FolioEcsUsernamePasswordFormTest {
       var httpClientProvider = mock(HttpClientProvider.class);
       when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
       when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
-      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ID);
+      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
       when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
       when(context.getExecution()).thenReturn(executionModel);
       when(executionModel.getId()).thenReturn(EXECUTION_ID);

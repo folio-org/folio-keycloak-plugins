@@ -55,7 +55,7 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
   public void action(AuthenticationFlowContext context) {
     MultivaluedMap<String, String> formData = context.getHttpRequest().getDecodedFormParameters();
     if (formData.containsKey("cancel")) {
-      log.infof("getUserFromForm:: Canceling authentication");
+      log.infof("getUserFromForm:: Cancelling authentication");
       context.cancelLogin();
       return;
     }
@@ -98,7 +98,7 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
       context.getEvent().error(Errors.USER_NOT_FOUND);
       Response challengeResponse = challenge(context, getDefaultChallengeMessage(context), FIELD_USERNAME);
       context.failureChallenge(AuthenticationFlowError.INVALID_USER, challengeResponse);
-      log.info("getUserFromForm:: Cannot retrieve user from form username is empty");
+      log.warnf("getUserFromForm:: Cannot retrieve user from form username is empty");
       return null;
     }
 
@@ -121,11 +121,11 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
       if (mde.getDuplicateFieldName() != null && mde.getDuplicateFieldName().equals(UserModel.EMAIL)) {
         challengeResponse = setDuplicateUserChallenge(context, Errors.EMAIL_IN_USE, Messages.EMAIL_EXISTS,
           AuthenticationFlowError.INVALID_USER);
-        log.info("getUserFromForm:: Cannot retrieve user from from, email is duplicated");
+        log.warnf("getUserFromForm:: Cannot retrieve user from from, email is duplicated");
       } else {
         challengeResponse = setDuplicateUserChallenge(context, Errors.USERNAME_IN_USE, Messages.USERNAME_EXISTS,
           AuthenticationFlowError.INVALID_USER);
-        log.info("getUserFromForm:: Cannot retrieve user from form, username is duplicated");
+        log.warnf("getUserFromForm:: Cannot retrieve user from form, username is duplicated");
       }
       context.failureChallenge(AuthenticationFlowError.INVALID_CREDENTIALS, challengeResponse);
       return null;
@@ -152,44 +152,49 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
   }
 
   private boolean authenticateBy(AuthenticationFlowContext context, FederatedIdentityModel federatedIdentityModel) {
-    String providerId = federatedIdentityModel.getIdentityProvider();
-    IdentityProvider<?> idpInstance = getValidatedIdentityProvider(context, providerId);
+    String providerAlias = federatedIdentityModel.getIdentityProvider();
+    IdentityProvider<?> idpInstance = getValidatedIdentityProvider(context, providerAlias);
     if (idpInstance == null) {
+      log.warnf("authenticateBy:: Cannot find an identity provider");
       return false;
     }
     if (idpInstance instanceof OIDCIdentityProvider oidcIdentityProvider) {
+      log.debugf("authenticateBy:: Found an OIDCIdentityProvider identity provider %s", providerAlias);
       return authenticateWithOidcProvider(context, oidcIdentityProvider, federatedIdentityModel);
     }
-    log.infof("authenticateBy:: IdentityProvider %s is not an instance of OIDCIdentityProvider", providerId);
+    log.warnf("authenticateBy:: IdentityProvider %s is not an instance of OIDCIdentityProvider", providerAlias);
     return false;
   }
 
-  private IdentityProvider<?> getValidatedIdentityProvider(AuthenticationFlowContext context, String providerId) {
-    IdentityProviderModel idpModel = context.getSession().identityProviders().getById(providerId);
-    if (!isIdentityProviderValid(idpModel, providerId)) {
+  private IdentityProvider<?> getValidatedIdentityProvider(AuthenticationFlowContext context, String providerAlias) {
+    IdentityProviderModel idpModel = context.getSession().identityProviders().getByAlias(providerAlias);
+    if (!isIdentityProviderValid(idpModel, providerAlias)) {
+      log.warnf("getValidatedIdentityProvider:: IdentityProviderModel %s is not valid",
+        providerAlias);
       return null;
     }
 
     IdentityProviderFactory<IdentityProvider<?>> idpFactory = getIdentityProviderFactory(context, idpModel);
     if (idpFactory == null) {
-      log.infof("getValidatedIdentityProvider:: IdentityProviderFactory for %s not found", idpModel.getProviderId());
+      log.warnf("getValidatedIdentityProvider:: IdentityProviderFactory for %s not found",
+        providerAlias);
       return null;
     }
 
     return idpFactory.create(context.getSession(), idpModel);
   }
 
-  private boolean isIdentityProviderValid(IdentityProviderModel idpModel, String providerId) {
+  private boolean isIdentityProviderValid(IdentityProviderModel idpModel, String providerAlias) {
     if (idpModel == null) {
-      log.infof("isIdentityProviderValid:: Identity Provider %s not found", providerId);
+      log.warnf("isIdentityProviderValid:: Identity Provider %s not found", providerAlias);
       return false;
     }
     if (!idpModel.isEnabled()) {
-      log.infof("isIdentityProviderValid:: Identity Provider %s is disabled", providerId);
+      log.warnf("isIdentityProviderValid:: Identity Provider %s is disabled", providerAlias);
       return false;
     }
     if (idpModel.isLinkOnly()) {
-      log.infof("isIdentityProviderValid:: Identity Provider %s is not allowed to perform a login", providerId);
+      log.warnf("isIdentityProviderValid:: Identity Provider %s is not allowed to perform a login", providerAlias);
       return false;
     }
     return true;
@@ -239,7 +244,7 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
     String responseString = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
     if (statusCode != HttpStatus.SC_OK) {
-      log.infof("sendTokenRequest:: Authentication failed: status code %s", statusCode);
+      log.warnf("sendTokenRequest:: Authentication failed: status code %s", statusCode);
       throw new AuthenticationException("Invalid response from token endpoint: HTTP: " + statusCode);
     }
     return responseString;
