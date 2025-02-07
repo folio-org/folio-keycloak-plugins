@@ -2,6 +2,7 @@ package org.folio.authentication;
 
 import static org.keycloak.services.validation.Validation.FIELD_USERNAME;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.ws.rs.core.MultivaluedMap;
@@ -257,7 +258,8 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
     return params;
   }
 
-  private boolean processTokenResponse(AuthenticationFlowContext context, String responseString) throws Exception {
+  private boolean processTokenResponse(AuthenticationFlowContext context, String responseString)
+    throws JsonProcessingException {
     ObjectMapper mapper = new ObjectMapper();
     JsonNode jsonNode = mapper.readTree(responseString);
     if (jsonNode.has("access_token")) {

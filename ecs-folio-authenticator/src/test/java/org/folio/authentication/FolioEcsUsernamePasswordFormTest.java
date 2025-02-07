@@ -58,7 +58,7 @@ import org.keycloak.models.light.LightweightUserAdapter;
 import org.keycloak.sessions.AuthenticationSessionModel;
 import org.keycloak.storage.adapter.InMemoryUserAdapter;
 
-public class FolioEcsUsernamePasswordFormTest {
+class FolioEcsUsernamePasswordFormTest {
 
   private static final String USER_ID = "userId";
   private static final String USERNAME = "username";

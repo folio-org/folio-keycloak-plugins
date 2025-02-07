@@ -1,5 +1,6 @@
 package org.folio.authentication;
 
+import java.util.Collections;
 import java.util.List;
 import org.keycloak.Config;
 import org.keycloak.authentication.Authenticator;
@@ -15,7 +16,7 @@ public class FolioEcsUsernamePasswordFormFactory implements AuthenticatorFactory
 
   public static final String PROVIDER_ID = "ecs-folio-auth-usrnm-pwd-form";
   public static final UsernamePasswordForm SINGLETON = new FolioEcsUsernamePasswordForm();
-  public static final AuthenticationExecutionModel.Requirement[] REQUIREMENT_CHOICES = {
+  protected static final AuthenticationExecutionModel.Requirement[] REQUIREMENT_CHOICES = {
     AuthenticationExecutionModel.Requirement.REQUIRED
   };
 
@@ -26,14 +27,17 @@ public class FolioEcsUsernamePasswordFormFactory implements AuthenticatorFactory
 
   @Override
   public void init(Config.Scope config) {
+    // Unsupported operation
   }
 
   @Override
   public void postInit(KeycloakSessionFactory factory) {
+    // Unsupported operation
   }
 
   @Override
   public void close() {
+    // Unsupported operation
   }
 
   @Override
@@ -73,6 +77,6 @@ public class FolioEcsUsernamePasswordFormFactory implements AuthenticatorFactory
 
   @Override
   public List<ProviderConfigProperty> getConfigProperties() {
-    return null;
+    return Collections.emptyList();
   }
 }

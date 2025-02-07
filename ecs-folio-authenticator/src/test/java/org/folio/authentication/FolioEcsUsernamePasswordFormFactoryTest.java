@@ -5,16 +5,16 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 
+import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.keycloak.models.AuthenticationExecutionModel.Requirement;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 
-public class FolioEcsUsernamePasswordFormFactoryTest {
+class FolioEcsUsernamePasswordFormFactoryTest {
 
   private FolioEcsUsernamePasswordFormFactory factory;
 
@@ -24,65 +24,65 @@ public class FolioEcsUsernamePasswordFormFactoryTest {
   }
 
   @Test
-  public void testCreate() {
+  void testCreate() {
     KeycloakSession session = mock(KeycloakSession.class);
     assertNotNull(factory.create(session));
   }
 
   @Test
-  public void testGetId() {
+  void testGetId() {
     assertEquals("ecs-folio-auth-usrnm-pwd-form", factory.getId());
   }
 
   @Test
-  public void testGetDisplayType() {
+  void testGetDisplayType() {
     assertEquals("ECS Folio Username Password Form", factory.getDisplayType());
   }
 
   @Test
-  public void testGetReferenceCategory() {
+  void testGetReferenceCategory() {
     assertEquals("password", factory.getReferenceCategory());
   }
 
   @Test
-  public void testIsConfigurable() {
+  void testIsConfigurable() {
     assertFalse(factory.isConfigurable());
   }
 
   @Test
-  public void testGetRequirementChoices() {
+  void testGetRequirementChoices() {
     Requirement[] requirements = factory.getRequirementChoices();
     assertArrayEquals(new Requirement[]{Requirement.REQUIRED}, requirements);
   }
 
   @Test
-  public void testIsUserSetupAllowed() {
+  void testIsUserSetupAllowed() {
     assertFalse(factory.isUserSetupAllowed());
   }
 
   @Test
-  public void testGetHelpText() {
+  void testGetHelpText() {
     assertEquals("Validates a Folio username and password from login form in ECS setup.", factory.getHelpText());
   }
 
   @Test
-  public void testGetConfigProperties() {
-    assertNull(factory.getConfigProperties());
+  void testGetConfigProperties() {
+    assertEquals(Collections.emptyList(), factory.getConfigProperties());
   }
 
   @Test
-  public void testInit() {
+  void testInit() {
     assertDoesNotThrow(() -> factory.init(null));
   }
 
   @Test
-  public void testPostInit() {
+  void testPostInit() {
     KeycloakSessionFactory sessionFactory = mock(KeycloakSessionFactory.class);
     assertDoesNotThrow(() -> factory.postInit(sessionFactory));
   }
 
   @Test
-  public void testClose() {
+  void testClose() {
     assertDoesNotThrow(factory::close);
   }
 }
