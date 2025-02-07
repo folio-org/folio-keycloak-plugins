@@ -17,52 +17,52 @@
   <properties>
     <jar.finalName>${project.artifactId}-${project.version}</jar.finalName>
     <java.version>17</java.version>
-    <junit-jupiter.version>5.11.0</junit-jupiter.version>
-    <maven.compiler.release>17</maven.compiler.release>
-
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
+    <junit-jupiter.version>5.11.4</junit-jupiter.version>
     <mockito-junit-jupiter.version>5.15.2</mockito-junit-jupiter.version>
     <resteasy-jackson2-provider.version>6.2.11.Final</resteasy-jackson2-provider.version>
+
+    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
   </properties>
 
   <dependencies>
     <dependency>
       <artifactId>keycloak-core</artifactId>
       <groupId>org.keycloak</groupId>
-      <scope>provided</scope>
       <version>${keycloak.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <artifactId>keycloak-server-spi</artifactId>
       <groupId>org.keycloak</groupId>
-      <scope>provided</scope>
       <version>${keycloak.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <artifactId>keycloak-server-spi-private</artifactId>
       <groupId>org.keycloak</groupId>
-      <scope>provided</scope>
       <version>${keycloak.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <artifactId>keycloak-services</artifactId>
       <groupId>org.keycloak</groupId>
-      <scope>provided</scope>
       <version>${keycloak.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <artifactId>keycloak-saml-core-public</artifactId>
       <groupId>org.keycloak</groupId>
-      <scope>provided</scope>
       <version>${keycloak.version}</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
       <artifactId>junit-jupiter-engine</artifactId>
       <groupId>org.junit.jupiter</groupId>
-      <scope>test</scope>
       <version>${junit-jupiter.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -73,8 +73,8 @@
     <dependency>
       <artifactId>mockito-junit-jupiter</artifactId>
       <groupId>org.mockito</groupId>
-      <scope>test</scope>
       <version>${mockito-junit-jupiter.version}</version>
+      <scope>test</scope>
     </dependency>
     <!-- Provides an implementation to mock OIDCIdentityProvider in the tests -->
     <dependency>

@@ -54,9 +54,9 @@ import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserProvider;
-import org.keycloak.models.light.LightweightUserAdapter;
 import org.keycloak.sessions.AuthenticationSessionModel;
 import org.keycloak.storage.adapter.InMemoryUserAdapter;
+import org.mockito.MockedStatic;
 
 class FolioEcsUsernamePasswordFormTest {
 
@@ -70,6 +70,8 @@ class FolioEcsUsernamePasswordFormTest {
   private static final String URL = "url";
   private static final String CLIENT_ID = "clientId";
   private static final String CLIENT_SECRET = "clientSecret";
+  private static final String FEDERATED_IDENTITY_MODEL = "federatedIdentityModel";
+  private static final String TRUE = "true";
   private static final String RESPONSE_JSON = "{\"access_token\":\"token\"}";
   private static final String USER_SET_BEFORE_USERNAME_PASSWORD_AUTH = "USER_SET_BEFORE_USERNAME_PASSWORD_AUTH";
 
@@ -80,13 +82,12 @@ class FolioEcsUsernamePasswordFormTest {
   private UserProvider userProvider;
   private IdentityProviderStorageProvider identityProviderStorageProvider;
   private PasswordHashProvider passwordHashProvider;
-  private AuthenticationExecutionModel executionModel;
   private LoginFormsProvider loginFormsProvider;
   private AuthenticationSessionModel authSession;
-  private RealmModel realm;
   private FreeMarkerLoginFormsProvider freeMarkerLoginFormsProvider;
   @SuppressWarnings("rawtypes")
   private IdentityProviderFactory identityProviderFactory;
+  private KeycloakSessionFactory keycloakSessionFactory;
 
   @BeforeEach
   @SuppressWarnings("unchecked")
@@ -99,29 +100,40 @@ class FolioEcsUsernamePasswordFormTest {
     userProvider = mock(UserProvider.class);
     identityProviderStorageProvider = mock(IdentityProviderStorageProvider.class);
     passwordHashProvider = mock(PasswordHashProvider.class);
-    executionModel = mock(AuthenticationExecutionModel.class);
+
     loginFormsProvider = mock(LoginFormsProvider.class);
     authSession = mock(AuthenticationSessionModel.class);
-    realm = mock(RealmModel.class);
     freeMarkerLoginFormsProvider = mock(FreeMarkerLoginFormsProvider.class);
     identityProviderFactory = mock(IdentityProviderFactory.class);
+    keycloakSessionFactory = mock(KeycloakSessionFactory.class);
 
     when(context.getSession()).thenReturn(session);
     when(context.getHttpRequest()).thenReturn(httpRequest);
     when(context.getAuthenticationSession()).thenReturn(authSession);
+    when(context.getEvent()).thenReturn(mock(EventBuilder.class));
+
+    var realm = mock(RealmModel.class);
     when(context.getRealm()).thenReturn(realm);
     when(realm.getName()).thenReturn(REALM);
-    when(context.getEvent()).thenReturn(mock(EventBuilder.class));
-    when(session.users()).thenReturn(userProvider);
 
-    var keycloakSessionFactory = mock(KeycloakSessionFactory.class);
+    var executionModel = mock(AuthenticationExecutionModel.class);
+    when(context.getExecution()).thenReturn(executionModel);
+    when(executionModel.getId()).thenReturn(EXECUTION_ID);
+
+    when(context.form()).thenReturn(loginFormsProvider);
+    when(context.getAuthenticationSession()).thenReturn(authSession);
+    when(session.users()).thenReturn(userProvider);
     when(session.getKeycloakSessionFactory()).thenReturn(keycloakSessionFactory);
+    when(loginFormsProvider.setExecution(anyString())).thenReturn(loginFormsProvider);
     when(keycloakSessionFactory.getProviderFactory(IdentityProvider.class, PROVIDER_ID))
       .thenReturn(identityProviderFactory);
   }
 
+  // Action Tests
+
   @Test
   void testActionWithCancellation() {
+    // Cancel Form Data Field
     var formData = new MultivaluedHashMap<String, String>();
     formData.add("cancel", "");
 
@@ -134,68 +146,38 @@ class FolioEcsUsernamePasswordFormTest {
 
   @Test
   void testActionWithFederatedIdentity() {
-    var userModel = new LightweightUserAdapter(session, realm, USER_ID);
-    userModel.setUsername(USERNAME);
-
-    when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getAllStream()).thenReturn(Stream.of(createIdentityProviderModel()));
-    when(session.users()).thenReturn(userProvider);
-    when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
-    when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(USERNAME));
-    when(userProvider.getUserByFederatedIdentity(any(), any())).thenReturn(userModel);
-    when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(createFederatedIdentityModel()));
-    when(context.getExecution()).thenReturn(executionModel);
-    when(executionModel.getId()).thenReturn(EXECUTION_ID);
-    when(context.form()).thenReturn(loginFormsProvider);
-    when(loginFormsProvider.setExecution(anyString())).thenReturn(loginFormsProvider);
-    when(context.getAuthenticationSession()).thenReturn(authSession);
+    createIdentityProviders();
+    createPasswordHashProvider(USERNAME);
+    // With Federated Identity
+    var userModel = createInMemoryUserAdapterUserModel();
+    createFederatedIdentities(userModel, Stream.of(createFederatedIdentityModelObj()));
 
     usernamePasswordForm.action(context);
 
     verify(context, atMostOnce()).setUser(any(UserModel.class));
-    verify(authSession, atMostOnce()).setAuthNote(eq(USER_SET_BEFORE_USERNAME_PASSWORD_AUTH), eq("true"));
-    verify(session, atMostOnce()).setAttribute(eq("federatedIdentityModel"), any(FederatedIdentityModel.class));
+    verify(authSession, atMostOnce()).setAuthNote(eq(USER_SET_BEFORE_USERNAME_PASSWORD_AUTH), eq(TRUE));
+    verify(session, atMostOnce()).setAttribute(eq(FEDERATED_IDENTITY_MODEL), any(FederatedIdentityModel.class));
   }
 
   @Test
   void testActionWithoutFederatedIdentity() {
-    when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getAllStream()).thenReturn(Stream.of(createIdentityProviderModel()));
-    when(session.users()).thenReturn(userProvider);
-    when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
-    when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(USERNAME));
-    when(userProvider.getUserByFederatedIdentity(any(), any())).thenReturn(null);
-    when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of());
-    when(context.getExecution()).thenReturn(executionModel);
-    when(executionModel.getId()).thenReturn(EXECUTION_ID);
-    when(context.form()).thenReturn(loginFormsProvider);
-    when(loginFormsProvider.setExecution(anyString())).thenReturn(loginFormsProvider);
-    when(context.getAuthenticationSession()).thenReturn(authSession);
+    createIdentityProviders();
+    createPasswordHashProvider(USERNAME);
+    createFederatedIdentities(null, Stream.of());
 
     usernamePasswordForm.action(context);
 
     verify(context, never()).setUser(any(UserModel.class));
-    verify(authSession, never()).setAuthNote(eq(USER_SET_BEFORE_USERNAME_PASSWORD_AUTH), eq("true"));
-    verify(session, never()).setAttribute(eq("federatedIdentityModel"), any(FederatedIdentityModel.class));
+    verify(authSession, never()).setAuthNote(eq(USER_SET_BEFORE_USERNAME_PASSWORD_AUTH), eq(TRUE));
+    verify(session, never()).setAttribute(eq(FEDERATED_IDENTITY_MODEL), any(FederatedIdentityModel.class));
   }
 
   @Test
   void testActionWithFederatedIdentityAndWithNoUsername() {
-    var userModel = new LightweightUserAdapter(session, realm, USER_ID);
-    userModel.setUsername(USERNAME);
-
-    when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getAllStream()).thenReturn(Stream.of(createIdentityProviderModel()));
-    when(session.users()).thenReturn(userProvider);
-    when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
-    when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
-    when(userProvider.getUserByFederatedIdentity(any(), any())).thenReturn(userModel);
-    when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(createFederatedIdentityModel()));
-    when(context.getExecution()).thenReturn(executionModel);
-    when(executionModel.getId()).thenReturn(EXECUTION_ID);
-    when(context.form()).thenReturn(loginFormsProvider);
-    when(loginFormsProvider.setExecution(anyString())).thenReturn(loginFormsProvider);
-    when(context.getAuthenticationSession()).thenReturn(authSession);
+    createIdentityProviders();
+    createPasswordHashProvider(null);
+    var userModel = createInMemoryUserAdapterUserModel();
+    createFederatedIdentities(userModel, Stream.of(createFederatedIdentityModelObj()));
 
     usernamePasswordForm.action(context);
 
@@ -208,26 +190,17 @@ class FolioEcsUsernamePasswordFormTest {
   @ParameterizedTest
   @ValueSource(strings = {UserModel.EMAIL, UserModel.USERNAME})
   void testActionWithFederatedIdentityAndWithDuplicatedUsername(String field) {
-    var userModel = new LightweightUserAdapter(session, realm, USER_ID);
-    userModel.setUsername(USERNAME);
+    createIdentityProviders();
+    createPasswordHashProvider(USERNAME);
 
-    when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getAllStream()).thenReturn(Stream.of(createIdentityProviderModel()));
-    when(session.users()).thenReturn(userProvider);
-    when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
-    when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(USERNAME));
+    // Duplicated Email or Username Field
     when(userProvider.getUserByFederatedIdentity(any(), any())).thenThrow(
       new ModelDuplicateException("Exception", field));
     when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(
-      Stream.of(createFederatedIdentityModel()));
-    when(context.getExecution()).thenReturn(executionModel);
-    when(executionModel.getId()).thenReturn(EXECUTION_ID);
-    when(context.form()).thenReturn(loginFormsProvider);
-    when(loginFormsProvider.setExecution(anyString())).thenReturn(loginFormsProvider);
+      Stream.of(createFederatedIdentityModelObj()));
     when(loginFormsProvider.setError(anyString(), eq(new Object[0]))).thenReturn(loginFormsProvider);
     when(freeMarkerLoginFormsProvider.createResponse(any())).thenReturn(mock(Response.class));
     when(loginFormsProvider.createLoginUsernamePassword()).thenReturn(mock(Response.class));
-    when(context.getAuthenticationSession()).thenReturn(authSession);
 
     usernamePasswordForm.action(context);
 
@@ -238,60 +211,27 @@ class FolioEcsUsernamePasswordFormTest {
       any(Response.class));
   }
 
+  // Validate Password Tests
+
   @Test
   void testValidatePasswordWithFederatedIdentity() throws IOException {
-    var userModel = mock(InMemoryUserAdapter.class);
-    when(userModel.getId()).thenReturn(USER_ID);
-    when(userModel.getUsername()).thenReturn(USERNAME);
-    when(userModel.credentialManager()).thenReturn(mock(CredentialModel.SECRET));
-    when(userModel.credentialManager().isValid(any(CredentialInput[].class))).thenReturn(true);
-
-    var federatedIdentityModel = mock(FederatedIdentityModel.class);
-    when(federatedIdentityModel.getUserName()).thenReturn(USERNAME);
-    when(context.getSession().removeAttribute("federatedIdentityModel")).thenReturn(federatedIdentityModel);
-
-    when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(createIdentityProviderModel());
-    when(session.users()).thenReturn(userProvider);
-    when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
-    when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
-    when(userProvider.getUserByFederatedIdentity(any(), any())).thenReturn(userModel);
-
-    var config = mock(OIDCIdentityProviderConfig.class);
-    when(config.getTokenUrl()).thenReturn(URL);
-    when(config.getClientId()).thenReturn(CLIENT_ID);
-    when(config.getClientSecret()).thenReturn(CLIENT_SECRET);
-
-    var oidcIdentityProvider = mock(OIDCIdentityProvider.class);
-    when(identityProviderFactory.create(any(), any())).thenReturn(oidcIdentityProvider);
-    when(oidcIdentityProvider.getConfig()).thenReturn(config);
+    createIdentityProviderByAlias(createIdentityProviderModelObj());
+    var oidcIdentityProviderConfig = createOidcIdentityProviderConfig();
+    createOidcIdentityProvider(oidcIdentityProviderConfig);
+    var federatedIdentityModel = createFederatedIdentityModelWithRemoveAttr();
+    bindIdentityProviderAndFederatedIdentityModel(federatedIdentityModel);
+    var userModel = createInMemoryUserAdapterUserModel();
+    // With Federated Identity
+    bindFederatedIdentity(userModel);
+    createPasswordHashProvider(USERNAME);
 
     try (var mockedStatic = mockStatic(EntityUtils.class)) {
-      var httpResponse = mock(CloseableHttpResponse.class);
-      when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
-      when(httpResponse.getStatusLine().getStatusCode()).thenReturn(HttpStatus.SC_OK);
+      var httpResponse = createHttpResponse(HttpStatus.SC_OK);
+      var httpEntity = createHttpEntity(httpResponse);
+      var httpClient = createHttpClient(httpResponse, mockedStatic, httpEntity, RESPONSE_JSON);
+      createHttpClientProvider(httpClient);
 
-      var httpEntity = mock(HttpEntity.class);
-      when(httpResponse.getEntity()).thenReturn(httpEntity);
-      when(httpEntity.getContentType()).thenReturn(mock(Header.class));
-      when(httpEntity.getContent()).thenReturn(mock(InputStream.class));
-
-      var httpClient = mock(CloseableHttpClient.class);
-      when(httpClient.execute(any())).thenReturn(httpResponse);
-      mockedStatic.when(() -> EntityUtils.toString(eq(httpEntity), eq(StandardCharsets.UTF_8)))
-        .thenReturn(RESPONSE_JSON);
-      var httpClientProvider = mock(HttpClientProvider.class);
-      when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
-      when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
-      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
-      when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
-      when(context.getExecution()).thenReturn(executionModel);
-      when(executionModel.getId()).thenReturn(EXECUTION_ID);
-      when(context.form()).thenReturn(loginFormsProvider);
-      when(loginFormsProvider.setExecution(anyString())).thenReturn(loginFormsProvider);
-      when(context.getAuthenticationSession()).thenReturn(authSession);
-
-      var result = usernamePasswordForm.validatePassword(context, userModel, createFormData(USERNAME), true);
+      var result = usernamePasswordForm.validatePassword(context, userModel, createFormDataObj(USERNAME), true);
 
       assertTrue(result);
 
@@ -301,46 +241,19 @@ class FolioEcsUsernamePasswordFormTest {
 
   @Test
   void testValidatePasswordWithFederatedIdentityAndWithNoIdentityProviderFactory() {
-    var userModel = mock(InMemoryUserAdapter.class);
-    when(userModel.getId()).thenReturn(USER_ID);
-    when(userModel.getUsername()).thenReturn(USERNAME);
-    when(userModel.credentialManager()).thenReturn(mock(CredentialModel.SECRET));
-    when(userModel.credentialManager().isValid(any(CredentialInput[].class))).thenReturn(true);
+    createIdentityProviderByAlias(createIdentityProviderModelObj());
+    var oidcIdentityProviderConfig = createOidcIdentityProviderConfig();
+    createOidcIdentityProvider(oidcIdentityProviderConfig);
+    var federatedIdentityModel = createFederatedIdentityModelWithRemoveAttr();
+    bindIdentityProviderAndFederatedIdentityModel(federatedIdentityModel);
+    var userModel = createInMemoryUserAdapterUserModel();
+    bindFederatedIdentity(userModel);
 
-    var federatedIdentityModel = mock(FederatedIdentityModel.class);
-    when(federatedIdentityModel.getUserName()).thenReturn(USERNAME);
-    when(context.getSession().removeAttribute("federatedIdentityModel")).thenReturn(federatedIdentityModel);
-
-    when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(createIdentityProviderModel());
-    when(session.users()).thenReturn(userProvider);
-    when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
-    when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
-    when(userProvider.getUserByFederatedIdentity(any(), any())).thenReturn(userModel);
-
-    var config = mock(OIDCIdentityProviderConfig.class);
-    when(config.getTokenUrl()).thenReturn(URL);
-    when(config.getClientId()).thenReturn(CLIENT_ID);
-    when(config.getClientSecret()).thenReturn(CLIENT_SECRET);
-
-    var keycloakSessionFactory = mock(KeycloakSessionFactory.class);
-    when(session.getKeycloakSessionFactory()).thenReturn(keycloakSessionFactory);
+    // No Identity Provider Factory
     when(keycloakSessionFactory.getProviderFactory(IdentityProvider.class, PROVIDER_ID))
       .thenReturn(null);
 
-    var oidcIdentityProvider = mock(OIDCIdentityProvider.class);
-    when(identityProviderFactory.create(any(), any())).thenReturn(oidcIdentityProvider);
-    when(oidcIdentityProvider.getConfig()).thenReturn(config);
-
-    when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
-    when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
-    when(context.getExecution()).thenReturn(executionModel);
-    when(executionModel.getId()).thenReturn(EXECUTION_ID);
-    when(context.form()).thenReturn(loginFormsProvider);
-    when(loginFormsProvider.setExecution(anyString())).thenReturn(loginFormsProvider);
-    when(context.getAuthenticationSession()).thenReturn(authSession);
-
-    var result = usernamePasswordForm.validatePassword(context, userModel, createFormData(USERNAME), true);
+    var result = usernamePasswordForm.validatePassword(context, userModel, createFormDataObj(USERNAME), true);
 
     assertFalse(result);
 
@@ -348,353 +261,118 @@ class FolioEcsUsernamePasswordFormTest {
   }
 
   @Test
-  void testValidatePasswordWithFederatedIdentityAndWithNoIdentityProviderModel() throws IOException {
-    var userModel = mock(InMemoryUserAdapter.class);
-    when(userModel.getId()).thenReturn(USER_ID);
-    when(userModel.getUsername()).thenReturn(USERNAME);
-    when(userModel.credentialManager()).thenReturn(mock(CredentialModel.SECRET));
-    when(userModel.credentialManager().isValid(any(CredentialInput[].class))).thenReturn(true);
+  void testValidatePasswordWithFederatedIdentityAndWithNoIdentityProviderModel() {
+    // No Identity Provider Model
+    createIdentityProviderByAlias(null);
+    var oidcIdentityProviderConfig = createOidcIdentityProviderConfig();
+    createOidcIdentityProvider(oidcIdentityProviderConfig);
+    var federatedIdentityModel = createFederatedIdentityModelWithRemoveAttr();
+    bindIdentityProviderAndFederatedIdentityModel(federatedIdentityModel);
+    var userModel = createInMemoryUserAdapterUserModel();
+    bindFederatedIdentity(userModel);
 
-    var federatedIdentityModel = mock(FederatedIdentityModel.class);
-    when(federatedIdentityModel.getUserName()).thenReturn(USERNAME);
-    when(context.getSession().removeAttribute("federatedIdentityModel")).thenReturn(federatedIdentityModel);
+    var result = usernamePasswordForm.validatePassword(context, userModel, createFormDataObj(USERNAME), true);
 
-    when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(null);
-    when(session.users()).thenReturn(userProvider);
-    when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
-    when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
-    when(userProvider.getUserByFederatedIdentity(any(), any())).thenReturn(userModel);
+    assertFalse(result);
 
-    var config = mock(OIDCIdentityProviderConfig.class);
-    when(config.getTokenUrl()).thenReturn(URL);
-    when(config.getClientId()).thenReturn(CLIENT_ID);
-    when(config.getClientSecret()).thenReturn(CLIENT_SECRET);
-
-    var oidcIdentityProvider = mock(OIDCIdentityProvider.class);
-    when(identityProviderFactory.create(any(), any())).thenReturn(oidcIdentityProvider);
-    when(oidcIdentityProvider.getConfig()).thenReturn(config);
-
-    try (var mockedStatic = mockStatic(EntityUtils.class)) {
-      var httpResponse = mock(CloseableHttpResponse.class);
-      when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
-      when(httpResponse.getStatusLine().getStatusCode()).thenReturn(HttpStatus.SC_OK);
-
-      var httpEntity = mock(HttpEntity.class);
-      when(httpResponse.getEntity()).thenReturn(httpEntity);
-      when(httpEntity.getContentType()).thenReturn(mock(Header.class));
-      when(httpEntity.getContent()).thenReturn(mock(InputStream.class));
-
-      var httpClient = mock(CloseableHttpClient.class);
-      when(httpClient.execute(any())).thenReturn(httpResponse);
-      mockedStatic.when(() -> EntityUtils.toString(eq(httpEntity), eq(StandardCharsets.UTF_8)))
-        .thenReturn(RESPONSE_JSON);
-      var httpClientProvider = mock(HttpClientProvider.class);
-      when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
-      when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
-      when(federatedIdentityModel.getIdentityProvider()).thenReturn(null);
-      when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
-      when(context.getExecution()).thenReturn(executionModel);
-      when(executionModel.getId()).thenReturn(EXECUTION_ID);
-      when(context.form()).thenReturn(loginFormsProvider);
-      when(loginFormsProvider.setExecution(anyString())).thenReturn(loginFormsProvider);
-      when(context.getAuthenticationSession()).thenReturn(authSession);
-
-      var result = usernamePasswordForm.validatePassword(context, userModel, createFormData(USERNAME), true);
-
-      assertFalse(result);
-
-      verify(userModel.credentialManager(), never()).isValid(any(CredentialInput[].class));
-    }
+    verify(userModel.credentialManager(), never()).isValid(any(CredentialInput[].class));
   }
 
   @Test
-  void testValidatePasswordWithFederatedIdentityAndWithLinkOnlyIdentityProviderModel() throws IOException {
-    var userModel = mock(InMemoryUserAdapter.class);
-    when(userModel.getId()).thenReturn(USER_ID);
-    when(userModel.getUsername()).thenReturn(USERNAME);
-    when(userModel.credentialManager()).thenReturn(mock(CredentialModel.SECRET));
-    when(userModel.credentialManager().isValid(any(CredentialInput[].class))).thenReturn(true);
-
-    var federatedIdentityModel = mock(FederatedIdentityModel.class);
-    when(federatedIdentityModel.getUserName()).thenReturn(USERNAME);
-    when(context.getSession().removeAttribute("federatedIdentityModel")).thenReturn(federatedIdentityModel);
-
-    var identityProviderModel = createIdentityProviderModel();
-    identityProviderModel.setLinkOnly(true);
-    when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(identityProviderModel);
-    when(session.users()).thenReturn(userProvider);
-    when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
-    when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
-    when(userProvider.getUserByFederatedIdentity(any(), any())).thenReturn(userModel);
-
-    var config = mock(OIDCIdentityProviderConfig.class);
-    when(config.getTokenUrl()).thenReturn(URL);
-    when(config.getClientId()).thenReturn(CLIENT_ID);
-    when(config.getClientSecret()).thenReturn(CLIENT_SECRET);
-
-    var oidcIdentityProvider = mock(OIDCIdentityProvider.class);
-    when(identityProviderFactory.create(any(), any())).thenReturn(oidcIdentityProvider);
-    when(oidcIdentityProvider.getConfig()).thenReturn(config);
-
-    try (var mockedStatic = mockStatic(EntityUtils.class)) {
-      var httpResponse = mock(CloseableHttpResponse.class);
-      when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
-      when(httpResponse.getStatusLine().getStatusCode()).thenReturn(HttpStatus.SC_OK);
-
-      var httpEntity = mock(HttpEntity.class);
-      when(httpResponse.getEntity()).thenReturn(httpEntity);
-      when(httpEntity.getContentType()).thenReturn(mock(Header.class));
-      when(httpEntity.getContent()).thenReturn(mock(InputStream.class));
-
-      var httpClient = mock(CloseableHttpClient.class);
-      when(httpClient.execute(any())).thenReturn(httpResponse);
-      mockedStatic.when(() -> EntityUtils.toString(eq(httpEntity), eq(StandardCharsets.UTF_8)))
-        .thenReturn(RESPONSE_JSON);
-      var httpClientProvider = mock(HttpClientProvider.class);
-      when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
-      when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
-      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
-      when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
-      when(context.getExecution()).thenReturn(executionModel);
-      when(executionModel.getId()).thenReturn(EXECUTION_ID);
-      when(context.form()).thenReturn(loginFormsProvider);
-      when(loginFormsProvider.setExecution(anyString())).thenReturn(loginFormsProvider);
-      when(context.getAuthenticationSession()).thenReturn(authSession);
-
-      var result = usernamePasswordForm.validatePassword(context, userModel, createFormData(USERNAME), true);
-
-      assertFalse(result);
-
-      verify(userModel.credentialManager(), never()).isValid(any(CredentialInput[].class));
-    }
-  }
-
-  @Test
-  void testValidatePasswordWithDisabledFederatedIdentity() throws IOException {
-    var userModel = mock(InMemoryUserAdapter.class);
-    when(userModel.getId()).thenReturn(USER_ID);
-    when(userModel.getUsername()).thenReturn(USERNAME);
-    when(userModel.credentialManager()).thenReturn(mock(CredentialModel.SECRET));
-    when(userModel.credentialManager().isValid(any(CredentialInput[].class))).thenReturn(true);
-
-    var federatedIdentityModel = mock(FederatedIdentityModel.class);
-    when(federatedIdentityModel.getUserName()).thenReturn(USERNAME);
-    when(context.getSession().removeAttribute("federatedIdentityModel")).thenReturn(federatedIdentityModel);
-
-    var identityProviderModel = createIdentityProviderModel();
+  void testValidatePasswordWithDisabledFederatedIdentity() {
+    // Disabled Identity Provider
+    var identityProviderModel = createIdentityProviderModelObj();
     identityProviderModel.setEnabled(false);
-    when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(identityProviderModel);
-    when(session.users()).thenReturn(userProvider);
-    when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
-    when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
-    when(userProvider.getUserByFederatedIdentity(any(), any())).thenReturn(userModel);
+    createIdentityProviderByAlias(identityProviderModel);
+    var oidcIdentityProviderConfig = createOidcIdentityProviderConfig();
+    createOidcIdentityProvider(oidcIdentityProviderConfig);
+    var federatedIdentityModel = createFederatedIdentityModelWithRemoveAttr();
+    bindIdentityProviderAndFederatedIdentityModel(federatedIdentityModel);
+    var userModel = createInMemoryUserAdapterUserModel();
+    bindFederatedIdentity(userModel);
 
-    var config = mock(OIDCIdentityProviderConfig.class);
-    when(config.getTokenUrl()).thenReturn(URL);
-    when(config.getClientId()).thenReturn(CLIENT_ID);
-    when(config.getClientSecret()).thenReturn(CLIENT_SECRET);
+    var result = usernamePasswordForm.validatePassword(context, userModel, createFormDataObj(USERNAME), true);
 
-    var oidcIdentityProvider = mock(OIDCIdentityProvider.class);
-    when(identityProviderFactory.create(any(), any())).thenReturn(oidcIdentityProvider);
-    when(oidcIdentityProvider.getConfig()).thenReturn(config);
+    assertFalse(result);
 
-    try (var mockedStatic = mockStatic(EntityUtils.class)) {
-      var httpResponse = mock(CloseableHttpResponse.class);
-      when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
-      when(httpResponse.getStatusLine().getStatusCode()).thenReturn(HttpStatus.SC_OK);
-
-      var httpEntity = mock(HttpEntity.class);
-      when(httpResponse.getEntity()).thenReturn(httpEntity);
-      when(httpEntity.getContentType()).thenReturn(mock(Header.class));
-      when(httpEntity.getContent()).thenReturn(mock(InputStream.class));
-
-      var httpClient = mock(CloseableHttpClient.class);
-      when(httpClient.execute(any())).thenReturn(httpResponse);
-      mockedStatic.when(() -> EntityUtils.toString(eq(httpEntity), eq(StandardCharsets.UTF_8)))
-        .thenReturn(RESPONSE_JSON);
-      var httpClientProvider = mock(HttpClientProvider.class);
-      when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
-      when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
-      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
-      when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
-      when(context.getExecution()).thenReturn(executionModel);
-      when(executionModel.getId()).thenReturn(EXECUTION_ID);
-      when(context.form()).thenReturn(loginFormsProvider);
-      when(loginFormsProvider.setExecution(anyString())).thenReturn(loginFormsProvider);
-      when(context.getAuthenticationSession()).thenReturn(authSession);
-
-      var result = usernamePasswordForm.validatePassword(context, userModel, createFormData(USERNAME), true);
-
-      assertFalse(result);
-
-      verify(userModel.credentialManager(), never()).isValid(any(CredentialInput[].class));
-    }
+    verify(userModel.credentialManager(), never()).isValid(any(CredentialInput[].class));
   }
 
   @Test
-  void testValidatePasswordWithFederatedIdentityAndWithNoIdentityProvider() throws IOException {
-    var userModel = mock(InMemoryUserAdapter.class);
-    when(userModel.getId()).thenReturn(USER_ID);
-    when(userModel.getUsername()).thenReturn(USERNAME);
-    when(userModel.credentialManager()).thenReturn(mock(CredentialModel.SECRET));
-    when(userModel.credentialManager().isValid(any(CredentialInput[].class))).thenReturn(true);
+  void testValidatePasswordWithFederatedIdentityAndWithLinkOnlyIdentityProviderModel() {
+    // Link Only Identity Provider
+    var identityProviderModel = createIdentityProviderModelObj();
+    identityProviderModel.setLinkOnly(true);
+    createIdentityProviderByAlias(identityProviderModel);
+    var oidcIdentityProviderConfig = createOidcIdentityProviderConfig();
+    createOidcIdentityProvider(oidcIdentityProviderConfig);
+    var federatedIdentityModel = createFederatedIdentityModelWithRemoveAttr();
+    bindIdentityProviderAndFederatedIdentityModel(federatedIdentityModel);
+    var userModel = createInMemoryUserAdapterUserModel();
+    bindFederatedIdentity(userModel);
 
-    var federatedIdentityModel = mock(FederatedIdentityModel.class);
-    when(federatedIdentityModel.getUserName()).thenReturn(USERNAME);
-    when(context.getSession().removeAttribute("federatedIdentityModel")).thenReturn(federatedIdentityModel);
+    var result = usernamePasswordForm.validatePassword(context, userModel, createFormDataObj(USERNAME), true);
 
-    when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(createIdentityProviderModel());
-    when(session.users()).thenReturn(userProvider);
-    when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
-    when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
-    when(userProvider.getUserByFederatedIdentity(any(), any())).thenReturn(userModel);
+    assertFalse(result);
+
+    verify(userModel.credentialManager(), never()).isValid(any(CredentialInput[].class));
+  }
+
+  @Test
+  void testValidatePasswordWithFederatedIdentityAndWithNoIdentityProvider() {
+    createIdentityProviderByAlias(createIdentityProviderModelObj());
+    var federatedIdentityModel = createFederatedIdentityModelWithRemoveAttr();
+    bindIdentityProviderAndFederatedIdentityModel(federatedIdentityModel);
+    var userModel = createInMemoryUserAdapterUserModel();
+    bindFederatedIdentity(userModel);
+
+    // No Identity Provider
     when(identityProviderFactory.create(any(), any())).thenReturn(null);
 
-    try (var mockedStatic = mockStatic(EntityUtils.class)) {
-      var httpResponse = mock(CloseableHttpResponse.class);
-      when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
-      when(httpResponse.getStatusLine().getStatusCode()).thenReturn(HttpStatus.SC_OK);
+    var result = usernamePasswordForm.validatePassword(context, userModel, createFormDataObj(USERNAME), true);
 
-      var httpEntity = mock(HttpEntity.class);
-      when(httpResponse.getEntity()).thenReturn(httpEntity);
-      when(httpEntity.getContentType()).thenReturn(mock(Header.class));
-      when(httpEntity.getContent()).thenReturn(mock(InputStream.class));
+    assertFalse(result);
 
-      var httpClient = mock(CloseableHttpClient.class);
-      when(httpClient.execute(any())).thenReturn(httpResponse);
-      mockedStatic.when(() -> EntityUtils.toString(eq(httpEntity), eq(StandardCharsets.UTF_8)))
-        .thenReturn(RESPONSE_JSON);
-      var httpClientProvider = mock(HttpClientProvider.class);
-      when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
-      when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
-      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
-      when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
-      when(context.getExecution()).thenReturn(executionModel);
-      when(executionModel.getId()).thenReturn(EXECUTION_ID);
-      when(context.form()).thenReturn(loginFormsProvider);
-      when(loginFormsProvider.setExecution(anyString())).thenReturn(loginFormsProvider);
-      when(context.getAuthenticationSession()).thenReturn(authSession);
-
-      var result = usernamePasswordForm.validatePassword(context, userModel, createFormData(USERNAME), true);
-
-      assertFalse(result);
-
-      verify(userModel.credentialManager(), never()).isValid(any(CredentialInput[].class));
-    }
+    verify(userModel.credentialManager(), never()).isValid(any(CredentialInput[].class));
   }
 
   @Test
-  void testValidatePasswordWithFederatedIdentityAndWithWrongIdentityProvider() throws IOException {
-    var userModel = mock(InMemoryUserAdapter.class);
-    when(userModel.getId()).thenReturn(USER_ID);
-    when(userModel.getUsername()).thenReturn(USERNAME);
-    when(userModel.credentialManager()).thenReturn(mock(CredentialModel.SECRET));
-    when(userModel.credentialManager().isValid(any(CredentialInput[].class))).thenReturn(true);
+  void testValidatePasswordWithFederatedIdentityAndWithWrongIdentityProvider() {
+    createIdentityProviderByAlias(createIdentityProviderModelObj());
+    var federatedIdentityModel = createFederatedIdentityModelWithRemoveAttr();
+    bindIdentityProviderAndFederatedIdentityModel(federatedIdentityModel);
+    var userModel = createInMemoryUserAdapterUserModel();
+    bindFederatedIdentity(userModel);
 
-    var federatedIdentityModel = mock(FederatedIdentityModel.class);
-    when(federatedIdentityModel.getUserName()).thenReturn(USERNAME);
-    when(context.getSession().removeAttribute("federatedIdentityModel")).thenReturn(federatedIdentityModel);
+    // Wrong Identity Provider
+    when(identityProviderFactory.create(any(), any())).thenReturn(mock(IdentityProvider.class));
 
-    when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(createIdentityProviderModel());
-    when(session.users()).thenReturn(userProvider);
-    when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
-    when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
-    when(userProvider.getUserByFederatedIdentity(any(), any())).thenReturn(userModel);
+    var result = usernamePasswordForm.validatePassword(context, userModel, createFormDataObj(USERNAME), true);
 
-    var identityProvider = mock(IdentityProvider.class);
-    when(identityProviderFactory.create(any(), any())).thenReturn(identityProvider);
+    assertFalse(result);
 
-    try (var mockedStatic = mockStatic(EntityUtils.class)) {
-      var httpResponse = mock(CloseableHttpResponse.class);
-      when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
-      when(httpResponse.getStatusLine().getStatusCode()).thenReturn(HttpStatus.SC_OK);
-
-      var httpEntity = mock(HttpEntity.class);
-      when(httpResponse.getEntity()).thenReturn(httpEntity);
-      when(httpEntity.getContentType()).thenReturn(mock(Header.class));
-      when(httpEntity.getContent()).thenReturn(mock(InputStream.class));
-
-      var httpClient = mock(CloseableHttpClient.class);
-      when(httpClient.execute(any())).thenReturn(httpResponse);
-      mockedStatic.when(() -> EntityUtils.toString(eq(httpEntity), eq(StandardCharsets.UTF_8)))
-        .thenReturn(RESPONSE_JSON);
-      var httpClientProvider = mock(HttpClientProvider.class);
-      when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
-      when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
-      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
-      when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
-      when(context.getExecution()).thenReturn(executionModel);
-      when(executionModel.getId()).thenReturn(EXECUTION_ID);
-      when(context.form()).thenReturn(loginFormsProvider);
-      when(loginFormsProvider.setExecution(anyString())).thenReturn(loginFormsProvider);
-      when(context.getAuthenticationSession()).thenReturn(authSession);
-
-      var result = usernamePasswordForm.validatePassword(context, userModel, createFormData(USERNAME), true);
-
-      assertFalse(result);
-
-      verify(userModel.credentialManager(), never()).isValid(any(CredentialInput[].class));
-    }
+    verify(userModel.credentialManager(), never()).isValid(any(CredentialInput[].class));
   }
 
   @Test
   void testValidatePasswordWithFederatedIdentityAndWithNoAccessToken() throws IOException {
-    var userModel = mock(InMemoryUserAdapter.class);
-    when(userModel.getId()).thenReturn(USER_ID);
-    when(userModel.getUsername()).thenReturn(USERNAME);
-    when(userModel.credentialManager()).thenReturn(mock(CredentialModel.SECRET));
-    when(userModel.credentialManager().isValid(any(CredentialInput[].class))).thenReturn(true);
-
-    var federatedIdentityModel = mock(FederatedIdentityModel.class);
-    when(federatedIdentityModel.getUserName()).thenReturn(USERNAME);
-    when(context.getSession().removeAttribute("federatedIdentityModel")).thenReturn(federatedIdentityModel);
-
-    when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(createIdentityProviderModel());
-    when(session.users()).thenReturn(userProvider);
-    when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
-    when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
-    when(userProvider.getUserByFederatedIdentity(any(), any())).thenReturn(userModel);
-
-    var config = mock(OIDCIdentityProviderConfig.class);
-    when(config.getTokenUrl()).thenReturn(URL);
-    when(config.getClientId()).thenReturn(CLIENT_ID);
-    when(config.getClientSecret()).thenReturn(CLIENT_SECRET);
-
-    var oidcIdentityProvider = mock(OIDCIdentityProvider.class);
-    when(identityProviderFactory.create(any(), any())).thenReturn(oidcIdentityProvider);
-    when(oidcIdentityProvider.getConfig()).thenReturn(config);
+    createIdentityProviderByAlias(createIdentityProviderModelObj());
+    var oidcIdentityProviderConfig = createOidcIdentityProviderConfig();
+    createOidcIdentityProvider(oidcIdentityProviderConfig);
+    var federatedIdentityModel = createFederatedIdentityModelWithRemoveAttr();
+    bindIdentityProviderAndFederatedIdentityModel(federatedIdentityModel);
+    var userModel = createInMemoryUserAdapterUserModel();
+    bindFederatedIdentity(userModel);
+    createPasswordHashProvider(null);
 
     try (var mockedStatic = mockStatic(EntityUtils.class)) {
-      var httpResponse = mock(CloseableHttpResponse.class);
-      when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
-      when(httpResponse.getStatusLine().getStatusCode()).thenReturn(HttpStatus.SC_OK);
+      var httpResponse = createHttpResponse(HttpStatus.SC_OK);
+      var httpEntity = createHttpEntity(httpResponse);
+      // No Access Token
+      var httpClient = createHttpClient(httpResponse, mockedStatic, httpEntity, "");
+      createHttpClientProvider(httpClient);
 
-      var httpEntity = mock(HttpEntity.class);
-      when(httpResponse.getEntity()).thenReturn(httpEntity);
-      when(httpEntity.getContentType()).thenReturn(mock(Header.class));
-      when(httpEntity.getContent()).thenReturn(mock(InputStream.class));
-
-      var httpClient = mock(CloseableHttpClient.class);
-      when(httpClient.execute(any())).thenReturn(httpResponse);
-      mockedStatic.when(() -> EntityUtils.toString(eq(httpEntity), eq(StandardCharsets.UTF_8))).thenReturn("");
-      var httpClientProvider = mock(HttpClientProvider.class);
-      when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
-      when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
-      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
-      when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
-      when(context.getExecution()).thenReturn(executionModel);
-      when(executionModel.getId()).thenReturn(EXECUTION_ID);
-      when(context.form()).thenReturn(loginFormsProvider);
-      when(loginFormsProvider.setExecution(anyString())).thenReturn(loginFormsProvider);
-      when(context.getAuthenticationSession()).thenReturn(authSession);
-
-      var result = usernamePasswordForm.validatePassword(context, userModel, createFormData(USERNAME), true);
+      var result = usernamePasswordForm.validatePassword(context, userModel, createFormDataObj(USERNAME), true);
 
       assertFalse(result);
 
@@ -704,57 +382,23 @@ class FolioEcsUsernamePasswordFormTest {
 
   @Test
   void testValidatePasswordWithFederatedIdentityAndWithNoOkStatus() throws IOException {
-    var userModel = mock(InMemoryUserAdapter.class);
-    when(userModel.getId()).thenReturn(USER_ID);
-    when(userModel.getUsername()).thenReturn(USERNAME);
-    when(userModel.credentialManager()).thenReturn(mock(CredentialModel.SECRET));
-    when(userModel.credentialManager().isValid(any(CredentialInput[].class))).thenReturn(true);
-
-    var federatedIdentityModel = mock(FederatedIdentityModel.class);
-    when(federatedIdentityModel.getUserName()).thenReturn(USERNAME);
-    when(context.getSession().removeAttribute("federatedIdentityModel")).thenReturn(federatedIdentityModel);
-
-    when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
-    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(createIdentityProviderModel());
-    when(session.users()).thenReturn(userProvider);
-    when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
-    when(httpRequest.getDecodedFormParameters()).thenReturn(createFormData(null));
-    when(userProvider.getUserByFederatedIdentity(any(), any())).thenReturn(userModel);
-
-    var config = mock(OIDCIdentityProviderConfig.class);
-    when(config.getTokenUrl()).thenReturn(URL);
-    when(config.getClientId()).thenReturn(CLIENT_ID);
-    when(config.getClientSecret()).thenReturn(CLIENT_SECRET);
-
-    var oidcIdentityProvider = mock(OIDCIdentityProvider.class);
-    when(identityProviderFactory.create(any(), any())).thenReturn(oidcIdentityProvider);
-    when(oidcIdentityProvider.getConfig()).thenReturn(config);
+    createIdentityProviderByAlias(createIdentityProviderModelObj());
+    var oidcIdentityProviderConfig = createOidcIdentityProviderConfig();
+    createOidcIdentityProvider(oidcIdentityProviderConfig);
+    var federatedIdentityModel = createFederatedIdentityModelWithRemoveAttr();
+    bindIdentityProviderAndFederatedIdentityModel(federatedIdentityModel);
+    var userModel = createInMemoryUserAdapterUserModel();
+    bindFederatedIdentity(userModel);
+    createPasswordHashProvider(null);
 
     try (var mockedStatic = mockStatic(EntityUtils.class)) {
-      var httpResponse = mock(CloseableHttpResponse.class);
-      when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
-      when(httpResponse.getStatusLine().getStatusCode()).thenReturn(HttpStatus.SC_GATEWAY_TIMEOUT);
+      // No OK Status (Error code 504)
+      var httpResponse = createHttpResponse(HttpStatus.SC_GATEWAY_TIMEOUT);
+      var httpEntity = createHttpEntity(httpResponse);
+      var httpClient = createHttpClient(httpResponse, mockedStatic, httpEntity, "");
+      createHttpClientProvider(httpClient);
 
-      var httpEntity = mock(HttpEntity.class);
-      when(httpResponse.getEntity()).thenReturn(httpEntity);
-      when(httpEntity.getContentType()).thenReturn(mock(Header.class));
-      when(httpEntity.getContent()).thenReturn(mock(InputStream.class));
-
-      var httpClient = mock(CloseableHttpClient.class);
-      when(httpClient.execute(any())).thenReturn(httpResponse);
-      mockedStatic.when(() -> EntityUtils.toString(eq(httpEntity), eq(StandardCharsets.UTF_8))).thenReturn("");
-      var httpClientProvider = mock(HttpClientProvider.class);
-      when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
-      when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
-      when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
-      when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
-      when(context.getExecution()).thenReturn(executionModel);
-      when(executionModel.getId()).thenReturn(EXECUTION_ID);
-      when(context.form()).thenReturn(loginFormsProvider);
-      when(loginFormsProvider.setExecution(anyString())).thenReturn(loginFormsProvider);
-      when(context.getAuthenticationSession()).thenReturn(authSession);
-
-      var result = usernamePasswordForm.validatePassword(context, userModel, createFormData(USERNAME), true);
+      var result = usernamePasswordForm.validatePassword(context, userModel, createFormDataObj(USERNAME), true);
 
       assertFalse(result);
 
@@ -764,38 +408,128 @@ class FolioEcsUsernamePasswordFormTest {
 
   @Test
   void testValidatePasswordWithNoFederatedIdentity() {
-    when(session.removeAttribute("federatedIdentityModel")).thenReturn(null);
+    var userModel = createInMemoryUserAdapterUserModel();
 
-    var userModel = mock(InMemoryUserAdapter.class);
-    when(userModel.getId()).thenReturn(USER_ID);
-    when(userModel.getUsername()).thenReturn(USERNAME);
-    when(userModel.getUsername()).thenReturn(USERNAME);
-    when(userModel.credentialManager()).thenReturn(mock(CredentialModel.SECRET));
-    when(userModel.credentialManager().isValid(any(CredentialInput[].class))).thenReturn(true);
+    // No Federated Identity
+    when(session.removeAttribute(FEDERATED_IDENTITY_MODEL)).thenReturn(null);
 
-    var result = usernamePasswordForm.validatePassword(context, userModel, createFormData(USERNAME), true);
+    var result = usernamePasswordForm.validatePassword(context, userModel, createFormDataObj(USERNAME), true);
 
     assertTrue(result);
 
     verify(userModel.credentialManager(), atMostOnce()).isValid(any(CredentialInput[].class));
   }
 
-  private MultivaluedHashMap<String, String> createFormData(String username) {
+  // Utility Methods
+
+  private MultivaluedHashMap<String, String> createFormDataObj(String username) {
     var formData = new MultivaluedHashMap<String, String>();
     formData.add("username", username);
     formData.add("password", FolioEcsUsernamePasswordFormTest.PASSWORD);
     return formData;
   }
 
-  private FederatedIdentityModel createFederatedIdentityModel() {
-    return new FederatedIdentityModel(PROVIDER_ALIAS, USERNAME, null);
-  }
-
-  private IdentityProviderModel createIdentityProviderModel() {
+  private IdentityProviderModel createIdentityProviderModelObj() {
     var identityProviderModel = new IdentityProviderModel();
     identityProviderModel.setProviderId(PROVIDER_ID);
     identityProviderModel.setAlias(PROVIDER_ALIAS);
     identityProviderModel.setEnabled(true);
     return identityProviderModel;
+  }
+
+  private void createIdentityProviders() {
+    when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
+    when(session.identityProviders().getAllStream()).thenReturn(Stream.of(createIdentityProviderModelObj()));
+  }
+
+  private void createIdentityProviderByAlias(IdentityProviderModel identityProviderModelObj) {
+    when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
+    when(session.identityProviders().getByAlias(PROVIDER_ALIAS)).thenReturn(identityProviderModelObj);
+  }
+
+  private FederatedIdentityModel createFederatedIdentityModelWithRemoveAttr() {
+    var federatedIdentityModel = mock(FederatedIdentityModel.class);
+    when(federatedIdentityModel.getUserName()).thenReturn(USERNAME);
+    when(context.getSession().removeAttribute(FEDERATED_IDENTITY_MODEL)).thenReturn(federatedIdentityModel);
+    return federatedIdentityModel;
+  }
+
+  private void createPasswordHashProvider(String username) {
+    when(session.users()).thenReturn(userProvider);
+    when(session.getProvider(PasswordHashProvider.class)).thenReturn(passwordHashProvider);
+    when(httpRequest.getDecodedFormParameters()).thenReturn(createFormDataObj(username));
+  }
+
+  private FederatedIdentityModel createFederatedIdentityModelObj() {
+    return new FederatedIdentityModel(PROVIDER_ALIAS, USERNAME, null);
+  }
+
+  private void bindFederatedIdentity(UserModel userModel) {
+    when(userProvider.getUserByFederatedIdentity(any(), any())).thenReturn(userModel);
+  }
+
+  private void createFederatedIdentities(UserModel userModel,
+                                         Stream<FederatedIdentityModel> federatedIdentityModelObj) {
+    when(userProvider.getUserByFederatedIdentity(any(), any())).thenReturn(userModel);
+    when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(federatedIdentityModelObj);
+  }
+
+  private void bindIdentityProviderAndFederatedIdentityModel(FederatedIdentityModel federatedIdentityModel) {
+    when(federatedIdentityModel.getIdentityProvider()).thenReturn(PROVIDER_ALIAS);
+    when(userProvider.getFederatedIdentitiesStream(any(), any())).thenReturn(Stream.of(federatedIdentityModel));
+  }
+
+  private InMemoryUserAdapter createInMemoryUserAdapterUserModel() {
+    var userModel = mock(InMemoryUserAdapter.class);
+    when(userModel.getId()).thenReturn(USER_ID);
+    when(userModel.getUsername()).thenReturn(USERNAME);
+    when(userModel.credentialManager()).thenReturn(mock(CredentialModel.SECRET));
+    when(userModel.credentialManager().isValid(any(CredentialInput[].class))).thenReturn(true);
+    return userModel;
+  }
+
+  private OIDCIdentityProviderConfig createOidcIdentityProviderConfig() {
+    var config = mock(OIDCIdentityProviderConfig.class);
+    when(config.getTokenUrl()).thenReturn(URL);
+    when(config.getClientId()).thenReturn(CLIENT_ID);
+    when(config.getClientSecret()).thenReturn(CLIENT_SECRET);
+    return config;
+  }
+
+  private void createOidcIdentityProvider(OIDCIdentityProviderConfig oidcIdentityProviderConfig) {
+    var oidcIdentityProvider = mock(OIDCIdentityProvider.class);
+    when(identityProviderFactory.create(any(), any())).thenReturn(oidcIdentityProvider);
+    when(oidcIdentityProvider.getConfig()).thenReturn(oidcIdentityProviderConfig);
+  }
+
+  private void createHttpClientProvider(CloseableHttpClient httpClient) {
+    var httpClientProvider = mock(HttpClientProvider.class);
+    when(httpClientProvider.getHttpClient()).thenReturn(httpClient);
+    when(session.getProvider(HttpClientProvider.class)).thenReturn(httpClientProvider);
+  }
+
+  private HttpEntity createHttpEntity(CloseableHttpResponse httpResponse) throws IOException {
+    var httpEntity = mock(HttpEntity.class);
+    when(httpResponse.getEntity()).thenReturn(httpEntity);
+    when(httpEntity.getContentType()).thenReturn(mock(Header.class));
+    when(httpEntity.getContent()).thenReturn(mock(InputStream.class));
+    return httpEntity;
+  }
+
+  private CloseableHttpClient createHttpClient(CloseableHttpResponse httpResponse,
+                                               MockedStatic<EntityUtils> mockedStatic,
+                                               HttpEntity httpEntity, String responseJson) throws IOException {
+    var httpClient = mock(CloseableHttpClient.class);
+    when(httpClient.execute(any())).thenReturn(httpResponse);
+    mockedStatic.when(() -> EntityUtils.toString(eq(httpEntity), eq(StandardCharsets.UTF_8)))
+      .thenReturn(responseJson);
+    return httpClient;
+  }
+
+  private CloseableHttpResponse createHttpResponse(int scOk) {
+    var httpResponse = mock(CloseableHttpResponse.class);
+    when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
+    when(httpResponse.getStatusLine().getStatusCode()).thenReturn(scOk);
+    return httpResponse;
   }
 }
