@@ -263,5 +263,6 @@
 
   <modules>
     <module>detect-folio-user</module>
+    <module>ecs-folio-authenticator</module>
   </modules>
 </project>

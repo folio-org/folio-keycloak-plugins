@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <artifactId>keycloak-ecs-folio-authenticator</artifactId>
+  <groupId>org.folio.authentication</groupId>
+  <version>1.0.0</version>
+
+  <parent>
+    <artifactId>folio-keycloak-plugins</artifactId>
+    <groupId>org.folio.keycloak</groupId>
+    <version>1.2.0-SNAPSHOT</version>
+  </parent>
+
+  <properties>
+    <jar.finalName>${project.artifactId}-${project.version}</jar.finalName>
+    <java.version>17</java.version>
+    <junit-jupiter.version>5.11.0</junit-jupiter.version>
+    <maven.compiler.release>17</maven.compiler.release>
+
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <mockito-junit-jupiter.version>5.15.2</mockito-junit-jupiter.version>
+    <resteasy-jackson2-provider.version>6.2.11.Final</resteasy-jackson2-provider.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <artifactId>keycloak-core</artifactId>
+      <groupId>org.keycloak</groupId>
+      <scope>provided</scope>
+      <version>${keycloak.version}</version>
+    </dependency>
+    <dependency>
+      <artifactId>keycloak-server-spi</artifactId>
+      <groupId>org.keycloak</groupId>
+      <scope>provided</scope>
+      <version>${keycloak.version}</version>
+    </dependency>
+    <dependency>
+      <artifactId>keycloak-server-spi-private</artifactId>
+      <groupId>org.keycloak</groupId>
+      <scope>provided</scope>
+      <version>${keycloak.version}</version>
+    </dependency>
+    <dependency>
+      <artifactId>keycloak-services</artifactId>
+      <groupId>org.keycloak</groupId>
+      <scope>provided</scope>
+      <version>${keycloak.version}</version>
+    </dependency>
+    <dependency>
+      <artifactId>keycloak-saml-core-public</artifactId>
+      <groupId>org.keycloak</groupId>
+      <scope>provided</scope>
+      <version>${keycloak.version}</version>
+    </dependency>
+
+    <dependency>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <groupId>org.junit.jupiter</groupId>
+      <scope>test</scope>
+      <version>${junit-jupiter.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
+      <version>${junit-jupiter.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <groupId>org.mockito</groupId>
+      <scope>test</scope>
+      <version>${mockito-junit-jupiter.version}</version>
+    </dependency>
+    <!-- Provides an implementation to mock OIDCIdentityProvider in the tests -->
+    <dependency>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-jackson2-provider</artifactId>
+      <scope>test</scope>
+      <version>${resteasy-jackson2-provider.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>keycloak-ecs-folio-authenticator</finalName>
+    <plugins>
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <appendAssemblyId>false</appendAssemblyId>
+          <descriptorRefs>
+            <descriptorRef>jar-with-dependencies</descriptorRef>
+          </descriptorRefs>
+          <finalName>${jar.finalName}</finalName>
+        </configuration>
+        <groupId>org.apache.maven.plugins</groupId>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <release>${java.version}</release>
+        </configuration>
+        <groupId>org.apache.maven.plugins</groupId>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <groupId>org.apache.maven.plugins</groupId>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <groupId>org.apache.maven.plugins</groupId>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <groupId>org.apache.maven.plugins</groupId>
+      </plugin>
+
+      <plugin>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <groupId>org.codehaus.mojo</groupId>
+      </plugin>
+    </plugins>
+  </build>
+</project>
