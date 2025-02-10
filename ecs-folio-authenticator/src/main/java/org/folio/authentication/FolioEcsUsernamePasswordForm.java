@@ -83,7 +83,7 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
   public boolean validatePassword(AuthenticationFlowContext context, UserModel user,
                                   MultivaluedMap<String, String> inputData, boolean clearUser) {
     FederatedIdentityModel federatedIdentityModel =
-      (FederatedIdentityModel) context.getSession().removeAttribute("federatedIdentityModel");
+      (FederatedIdentityModel) context.getSession().removeAttribute(FEDERATED_IDENTITY_MODEL);
     if (federatedIdentityModel == null) {
       log.infof("getUserFromForm:: Validating password in non-federated mode");
       return super.validatePassword(context, user, inputData, clearUser);
