@@ -51,6 +51,8 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
 
   private static final Logger log = Logger.getLogger(FolioEcsUsernamePasswordForm.class);
 
+  private static final String FEDERATED_IDENTITY_MODEL = "federatedIdentityModel";
+
   @Override
   public void action(AuthenticationFlowContext context) {
     MultivaluedMap<String, String> formData = context.getHttpRequest().getDecodedFormParameters();
@@ -70,7 +72,7 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
       FederatedIdentityModel federatedIdentityModel = identityModelOptional.get();
       context.setUser(userModel);
       context.getAuthenticationSession().setAuthNote(USER_SET_BEFORE_USERNAME_PASSWORD_AUTH, "true");
-      context.getSession().setAttribute("federatedIdentityModel", federatedIdentityModel);
+      context.getSession().setAttribute(FEDERATED_IDENTITY_MODEL, federatedIdentityModel);
     } else {
       log.infof("getUserFromForm:: Using non-federated identity authentication");
     }
