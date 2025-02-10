@@ -133,7 +133,7 @@ class FolioEcsUsernamePasswordFormTest {
 
   @Test
   void testActionWithCancellation() {
-    // Cancel Form Data Field
+    // With Cancel Form Data Field
     var formData = new MultivaluedHashMap<String, String>();
     formData.add("cancel", "");
 
@@ -160,9 +160,10 @@ class FolioEcsUsernamePasswordFormTest {
   }
 
   @Test
-  void testActionWithoutFederatedIdentity() {
+  void testActionWithNoFederatedIdentity() {
     createIdentityProviders();
     createPasswordHashProvider(USERNAME);
+    // No Federated Identity
     createFederatedIdentities(null, Stream.of());
 
     usernamePasswordForm.action(context);
@@ -175,6 +176,7 @@ class FolioEcsUsernamePasswordFormTest {
   @Test
   void testActionWithFederatedIdentityAndWithNoUsername() {
     createIdentityProviders();
+    // No Username
     createPasswordHashProvider(null);
     var userModel = createInMemoryUserAdapterUserModel();
     createFederatedIdentities(userModel, Stream.of(createFederatedIdentityModelObj()));
@@ -384,6 +386,36 @@ class FolioEcsUsernamePasswordFormTest {
   void testValidatePasswordWithFederatedIdentityAndWithNoOkStatus() throws IOException {
     createIdentityProviderByAlias(createIdentityProviderModelObj());
     var oidcIdentityProviderConfig = createOidcIdentityProviderConfig();
+    createOidcIdentityProvider(oidcIdentityProviderConfig);
+    var federatedIdentityModel = createFederatedIdentityModelWithRemoveAttr();
+    bindIdentityProviderAndFederatedIdentityModel(federatedIdentityModel);
+    var userModel = createInMemoryUserAdapterUserModel();
+    bindFederatedIdentity(userModel);
+    createPasswordHashProvider(null);
+
+    try (var mockedStatic = mockStatic(EntityUtils.class)) {
+      // No OK Status (Error code 504)
+      var httpResponse = createHttpResponse(HttpStatus.SC_GATEWAY_TIMEOUT);
+      var httpEntity = createHttpEntity(httpResponse);
+      var httpClient = createHttpClient(httpResponse, mockedStatic, httpEntity, "");
+      createHttpClientProvider(httpClient);
+
+      var result = usernamePasswordForm.validatePassword(context, userModel, createFormDataObj(USERNAME), true);
+
+      assertFalse(result);
+
+      verify(userModel.credentialManager(), never()).isValid(any(CredentialInput[].class));
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testValidatePasswordWithFederatedIdentityAndWithNoClientSecret(boolean emptyClientSecret) throws IOException {
+    createIdentityProviderByAlias(createIdentityProviderModelObj());
+    var oidcIdentityProviderConfig = mock(OIDCIdentityProviderConfig.class);
+    when(oidcIdentityProviderConfig.getTokenUrl()).thenReturn(URL);
+    when(oidcIdentityProviderConfig.getClientId()).thenReturn(CLIENT_ID);
+    when(oidcIdentityProviderConfig.getClientSecret()).thenReturn(emptyClientSecret ? "" : null);
     createOidcIdentityProvider(oidcIdentityProviderConfig);
     var federatedIdentityModel = createFederatedIdentityModelWithRemoveAttr();
     bindIdentityProviderAndFederatedIdentityModel(federatedIdentityModel);
