@@ -1,6 +1,6 @@
 package org.folio.authentication;
 
-import static org.folio.authentication.IdpDetectExistingFolioBrokerUserAuthenticatorFactory.EXTERNAL_ID_PROPERTY_NAME;
+import static org.folio.authentication.IdpDetectExistingFolioBrokerUserAuthenticator.EXTERNAL_ID_PROPERTY_NAME;
 import static org.folio.authentication.IdpDetectExistingFolioBrokerUserAuthenticatorFactory.PROVIDER_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
