@@ -81,7 +81,7 @@ class IdpDetectExistingFolioBrokerUserAuthenticatorTest {
     var result = mock(AuthenticationFlowContext.class);
     var config = new HashMap<String, String>();
     if (externalIdAttrName != null) {
-      config.put(IdpDetectExistingFolioBrokerUserAuthenticatorFactory.EXTERNAL_ID_PROPERTY_NAME, externalIdAttrName);
+      config.put(IdpDetectExistingFolioBrokerUserAuthenticator.EXTERNAL_ID_PROPERTY_NAME, externalIdAttrName);
     }
     var authConfig = mock(AuthenticatorConfigModel.class);
     lenient().when(result.getAuthenticatorConfig()).thenReturn(authConfig);

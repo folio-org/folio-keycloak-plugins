@@ -2,7 +2,6 @@ package org.folio.authentication;
 
 import static org.keycloak.models.AuthenticationExecutionModel.Requirement.DISABLED;
 import static org.keycloak.models.AuthenticationExecutionModel.Requirement.REQUIRED;
-import static org.keycloak.provider.ProviderConfigProperty.STRING_TYPE;
 
 import java.util.List;
 import org.keycloak.Config;
@@ -14,10 +13,8 @@ import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.provider.ProviderConfigProperty;
 
 public class IdpDetectExistingFolioBrokerUserAuthenticatorFactory implements AuthenticatorFactory {
-
-  public static final String EXTERNAL_ID_PROPERTY_NAME = "externalIdAttributeName";
-  public static final String EXTERNAL_ID_PROPERTY_DEFAULT_VALUE = "externalId";
   public static final String PROVIDER_ID = "idp-detect-folio-broker-user";
+
   private static final IdpDetectExistingFolioBrokerUserAuthenticator SINGLETON =
     new IdpDetectExistingFolioBrokerUserAuthenticator();
 
@@ -73,14 +70,6 @@ public class IdpDetectExistingFolioBrokerUserAuthenticatorFactory implements Aut
 
   @Override
   public List<ProviderConfigProperty> getConfigProperties() {
-    var customProperty = new ProviderConfigProperty();
-    customProperty.setName(EXTERNAL_ID_PROPERTY_NAME);
-    customProperty.setLabel("User attribute containing external ID");
-    customProperty.setType(STRING_TYPE);
-    customProperty.setHelpText("The external ID attribute of a user profile should contain an email or a "
-      + "username by which Keycloak user will be matched with the external user");
-    customProperty.setDefaultValue(EXTERNAL_ID_PROPERTY_DEFAULT_VALUE);
-
-    return List.of(customProperty);
+    return List.of(IdpDetectExistingFolioBrokerUserAuthenticator.getProviderConfigProperty());
   }
 }
