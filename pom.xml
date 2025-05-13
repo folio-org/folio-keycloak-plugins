@@ -13,7 +13,7 @@
     <maven.compiler.target>21</maven.compiler.target>
     <maven.compiler.release>21</maven.compiler.release>
     <junit.version>5.12.1</junit.version>
-    <keycloak.version>26.1.4</keycloak.version>
+    <keycloak.version>26.2.4</keycloak.version>
     <mockito.version>5.16.1</mockito.version>
     <resteasy.version>6.2.12.Final</resteasy.version>
 
