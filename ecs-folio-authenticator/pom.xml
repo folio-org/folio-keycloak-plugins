@@ -4,12 +4,12 @@
 
   <artifactId>keycloak-ecs-folio-authenticator</artifactId>
   <groupId>org.folio.authentication</groupId>
-  <version>26.4.0</version>
+  <version>1.0.0</version>
 
   <parent>
     <artifactId>folio-keycloak-plugins</artifactId>
     <groupId>org.folio.keycloak</groupId>
-    <version>26.4.0</version>
+    <version>26.5.0-SNAPSHOT</version>
   </parent>
 
   <properties>
