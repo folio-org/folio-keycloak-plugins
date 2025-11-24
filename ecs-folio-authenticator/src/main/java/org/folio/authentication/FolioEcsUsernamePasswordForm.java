@@ -57,7 +57,7 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
   public void action(AuthenticationFlowContext context) {
     MultivaluedMap<String, String> formData = context.getHttpRequest().getDecodedFormParameters();
     if (formData.containsKey("cancel")) {
-      log.infof("getUserFromForm:: Cancelling authentication");
+      log.debugf("getUserFromForm:: Cancelling authentication");
       context.cancelLogin();
       return;
     }
@@ -68,13 +68,13 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
       context.getSession().users().getFederatedIdentitiesStream(context.getRealm(), userModel).findFirst();
 
     if (identityModelOptional.isPresent()) {
-      log.infof("getUserFromForm:: Using federated identity authentication");
+      log.debugf("getUserFromForm:: Using federated identity authentication");
       FederatedIdentityModel federatedIdentityModel = identityModelOptional.get();
       context.setUser(userModel);
       context.getAuthenticationSession().setAuthNote(USER_SET_BEFORE_USERNAME_PASSWORD_AUTH, "true");
       context.getSession().setAttribute(FEDERATED_IDENTITY_MODEL, federatedIdentityModel);
     } else {
-      log.infof("getUserFromForm:: Using non-federated identity authentication");
+      log.debugf("getUserFromForm:: Using non-federated identity authentication");
     }
     super.action(context);
   }
@@ -85,11 +85,11 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
     FederatedIdentityModel federatedIdentityModel =
       (FederatedIdentityModel) context.getSession().removeAttribute(FEDERATED_IDENTITY_MODEL);
     if (federatedIdentityModel == null) {
-      log.infof("getUserFromForm:: Validating password in non-federated mode");
+      log.debugf("getUserFromForm:: Validating password in non-federated mode");
       return super.validatePassword(context, user, inputData, clearUser);
     }
 
-    log.infof("getUserFromForm:: Validating password in federated mode");
+    log.debugf("getUserFromForm:: Validating password in federated mode");
     boolean check = authenticateBy(context, federatedIdentityModel);
     return check || badPasswordHandler(context, user);
   }
