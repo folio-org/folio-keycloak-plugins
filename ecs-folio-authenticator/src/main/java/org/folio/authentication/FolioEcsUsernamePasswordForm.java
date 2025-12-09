@@ -95,7 +95,9 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
   }
 
   private UserModel getUserFromForm(AuthenticationFlowContext context, MultivaluedMap<String, String> inputData) {
-    String username = Optional.ofNullable(inputData.getFirst(AuthenticationManager.FORM_USERNAME)).orElse("").trim();
+    String username = Optional.ofNullable(inputData.getFirst(AuthenticationManager.FORM_USERNAME))
+      .orElse("")
+      .trim().toLowerCase();
     if (username.isEmpty()) {
       context.getEvent().error(Errors.USER_NOT_FOUND);
       Response challengeResponse = challenge(context, getDefaultChallengeMessage(context), FIELD_USERNAME);
