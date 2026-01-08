@@ -188,7 +188,7 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
     return idpFactory.create(context.getSession(), idpModel);
   }
 
-  private boolean isIdentityProviderValid(IdentityProviderModel idpModel, String providerAlias) {
+  private static boolean isIdentityProviderValid(IdentityProviderModel idpModel, String providerAlias) {
     if (idpModel == null) {
       log.warnf("isIdentityProviderValid:: Identity Provider %s not found", providerAlias);
       return false;
@@ -197,7 +197,7 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
       log.warnf("isIdentityProviderValid:: Identity Provider %s is disabled", providerAlias);
       return false;
     }
-    if (idpModel.isLinkOnly()) {
+    if (Boolean.TRUE.equals(idpModel.isLinkOnly())) {
       log.warnf("isIdentityProviderValid:: Identity Provider %s is not allowed to perform a login", providerAlias);
       return false;
     }
