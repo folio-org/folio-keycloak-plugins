@@ -37,6 +37,7 @@ import org.keycloak.events.Details;
 import org.keycloak.events.Errors;
 import org.keycloak.models.FederatedIdentityModel;
 import org.keycloak.models.IdentityProviderModel;
+import org.keycloak.models.IdentityProviderQuery;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.RealmModel;
@@ -114,7 +115,8 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
       KeycloakSession keycloakSession = context.getSession();
       RealmModel realm = context.getRealm();
 
-      user = keycloakSession.identityProviders().getAllStream()
+      user = keycloakSession.identityProviders()
+        .getAllStream(IdentityProviderQuery.userAuthentication())
         .map(idp -> getUserFromFederatedIdentity(idp, keycloakSession, realm, username))
         .filter(Objects::nonNull).findFirst()
         .orElseGet(() -> KeycloakModelUtils.findUserByNameOrEmail(keycloakSession, realm, username));
