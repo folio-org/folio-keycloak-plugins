@@ -24,13 +24,19 @@ public class IdpDetectExistingFolioBrokerUserAuthenticatorFactory implements Aut
   }
 
   @Override
-  public void init(Config.Scope config) {}
+  public void init(Config.Scope config) {
+    // nothing to do
+  }
 
   @Override
-  public void postInit(KeycloakSessionFactory factory) {}
+  public void postInit(KeycloakSessionFactory factory) {
+    // nothing to do
+  }
 
   @Override
-  public void close() {}
+  public void close() {
+    // nothing to do
+  }
 
   @Override
   public String getId() {
