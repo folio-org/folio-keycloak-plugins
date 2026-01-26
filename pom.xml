@@ -4,7 +4,7 @@
 
   <groupId>org.folio.keycloak</groupId>
   <artifactId>folio-keycloak-plugins</artifactId>
-  <version>26.5.0</version>
+  <version>26.5.1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
@@ -268,7 +268,7 @@
     <url>https://github.com/folio-org/folio-keycloak-plugins</url>
     <connection>scm:git:git://github.com:folio-org/folio-keycloak-plugins.git</connection>
     <developerConnection>scm:git:git@github.com:folio-org/folio-keycloak-plugins.git</developerConnection>
-    <tag>v26.5.0</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <modules>
