@@ -5,11 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.atMostOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -174,6 +174,36 @@ class FolioEcsUsernamePasswordFormTest {
   }
 
   @Test
+  void testActionWithEmptyUsername() {
+    createPasswordHashProvider("");
+
+    when(loginFormsProvider.setError(anyString(), any())).thenReturn(loginFormsProvider);
+    when(loginFormsProvider.createLoginUsernamePassword()).thenReturn(mock(Response.class));
+
+    usernamePasswordForm.action(context);
+
+    verify(context).failureChallenge(eq(AuthenticationFlowError.INVALID_USER), any(Response.class));
+    verify(userProvider, never()).getFederatedIdentitiesStream(any(), any());
+  }
+
+  @Test
+  void testActionWithUserNotFound() {
+    // User not found by any lookup should return null and not cause NPE
+    createIdentityProviders();
+    createPasswordHashProvider(USERNAME);
+
+    when(userProvider.getUserByFederatedIdentity(any(), any())).thenReturn(null);
+
+    when(loginFormsProvider.setError(anyString(), any())).thenReturn(loginFormsProvider);
+    when(loginFormsProvider.createLoginUsernamePassword()).thenReturn(mock(Response.class));
+
+    usernamePasswordForm.action(context);
+
+    verify(context, never()).setUser(any(UserModel.class));
+    verify(session, never()).setAttribute(eq(FEDERATED_IDENTITY_MODEL), any(FederatedIdentityModel.class));
+  }
+
+  @Test
   void testActionWithFederatedIdentityAndWithNoUsername() {
     createIdentityProviders();
     // No Username
@@ -192,7 +222,7 @@ class FolioEcsUsernamePasswordFormTest {
   @ParameterizedTest
   @ValueSource(strings = {UserModel.EMAIL, UserModel.USERNAME})
   void testActionWithFederatedIdentityAndWithDuplicatedUsername(String field) {
-    createIdentityProviders();
+    createIdentityProvidersWithQuery();
     createPasswordHashProvider(USERNAME);
 
     // Duplicated Email or Username Field
@@ -206,10 +236,10 @@ class FolioEcsUsernamePasswordFormTest {
 
     usernamePasswordForm.action(context);
 
-    verify(context, atMostOnce()).setUser(any());
-    verify(authSession, times(3)).setAuthNote(any(), any());
-    verify(session, atMostOnce()).setAttribute(any(), any());
-    verify(context, atMostOnce()).failureChallenge(eq(AuthenticationFlowError.INVALID_CREDENTIALS),
+    verify(context, never()).setUser(any(UserModel.class));
+    verify(authSession, atLeastOnce()).setAuthNote(any(), any());
+    verify(session, never()).setAttribute(eq(FEDERATED_IDENTITY_MODEL), any(FederatedIdentityModel.class));
+    verify(context).failureChallenge(eq(AuthenticationFlowError.INVALID_CREDENTIALS),
       any(Response.class));
   }
 
@@ -382,8 +412,9 @@ class FolioEcsUsernamePasswordFormTest {
     }
   }
 
-  @Test
-  void testValidatePasswordWithFederatedIdentityAndWithNoOkStatus() throws IOException {
+  @ParameterizedTest
+  @ValueSource(ints = {HttpStatus.SC_UNAUTHORIZED, HttpStatus.SC_GATEWAY_TIMEOUT})
+  void testValidatePasswordWithFederatedIdentityAndWithNonOkStatus(int httpStatusCode) throws IOException {
     createIdentityProviderByAlias(createIdentityProviderModelObj());
     var oidcIdentityProviderConfig = createOidcIdentityProviderConfig();
     createOidcIdentityProvider(oidcIdentityProviderConfig);
@@ -394,8 +425,7 @@ class FolioEcsUsernamePasswordFormTest {
     createPasswordHashProvider(null);
 
     try (var mockedStatic = mockStatic(EntityUtils.class)) {
-      // No OK Status (Error code 504)
-      var httpResponse = createHttpResponse(HttpStatus.SC_GATEWAY_TIMEOUT);
+      var httpResponse = createHttpResponse(httpStatusCode);
       var httpEntity = createHttpEntity(httpResponse);
       var httpClient = createHttpClient(httpResponse, mockedStatic, httpEntity, "");
       createHttpClientProvider(httpClient);
@@ -472,6 +502,11 @@ class FolioEcsUsernamePasswordFormTest {
   private void createIdentityProviders() {
     when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
     when(session.identityProviders().getAllStream()).thenReturn(Stream.of(createIdentityProviderModelObj()));
+  }
+
+  private void createIdentityProvidersWithQuery() {
+    when(session.identityProviders()).thenReturn(identityProviderStorageProvider);
+    when(identityProviderStorageProvider.getAllStream(any())).thenReturn(Stream.of(createIdentityProviderModelObj()));
   }
 
   private void createIdentityProviderByAlias(IdentityProviderModel identityProviderModelObj) {

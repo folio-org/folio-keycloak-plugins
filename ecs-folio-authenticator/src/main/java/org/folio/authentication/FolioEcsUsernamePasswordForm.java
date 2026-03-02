@@ -65,6 +65,11 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
 
     UserModel userModel = getUserFromForm(context, formData);
 
+    if (userModel == null) {
+      log.warnf("action:: User not found from form, skipping federated identity lookup");
+      return;
+    }
+
     Optional<FederatedIdentityModel> identityModelOptional =
       context.getSession().users().getFederatedIdentitiesStream(context.getRealm(), userModel).findFirst();
 
@@ -230,8 +235,12 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
     try {
       String responseString = sendTokenRequest(tokenUrl, clientId, clientSecret, username, password, context);
       return processTokenResponse(context, responseString);
+    } catch (AuthenticationException e) {
+      log.warnf("Authentication failed for user '%s' with external IdP: %s",
+        username, e.getMessage());
+      return false;
     } catch (Exception e) {
-      log.error("Error during authentication with external IdP", e);
+      log.error("Unexpected error during authentication with external IdP", e);
       return false;
     }
   }
