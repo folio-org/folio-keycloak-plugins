@@ -10,7 +10,6 @@
 
   <groupId>org.folio.authentication</groupId>
   <artifactId>keycloak-detect-folio-user</artifactId>
-  <version>26.5.2-SNAPSHOT</version>
 
   <properties>
     <jar.finalName>${project.artifactId}-${project.version}</jar.finalName>
