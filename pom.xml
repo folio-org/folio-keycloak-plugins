@@ -4,7 +4,7 @@
 
   <groupId>org.folio.keycloak</groupId>
   <artifactId>folio-keycloak-plugins</artifactId>
-  <version>26.5.4-SNAPSHOT</version>
+  <version>26.5.5-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
