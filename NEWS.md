@@ -1,3 +1,5 @@
+## 26.5.5 (in progress)
+
 ## 26.5.4 (03.04.2026)
 * Update keycloak version to 26.5.7 (FKP-24)
 
