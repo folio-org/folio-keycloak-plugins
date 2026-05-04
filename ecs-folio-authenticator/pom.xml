@@ -3,13 +3,13 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
+    <groupId>org.folio</groupId>
     <artifactId>folio-keycloak-plugins</artifactId>
-    <groupId>org.folio.keycloak</groupId>
     <version>26.5.5-SNAPSHOT</version>
   </parent>
 
-  <artifactId>keycloak-ecs-folio-authenticator</artifactId>
   <groupId>org.folio.authentication</groupId>
+  <artifactId>keycloak-ecs-folio-authenticator</artifactId>
 
   <properties>
     <jar.finalName>${project.artifactId}-${project.version}</jar.finalName>
