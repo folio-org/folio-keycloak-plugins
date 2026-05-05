@@ -18,5 +18,5 @@ jobs:
       java-version: '21'
       publish-module-descriptor: false
       allow-snapshots-release: false
-      do-sonar-scan: false
+      do-sonar-scan: true
       do-docker: false
