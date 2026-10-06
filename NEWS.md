@@ -1,3 +1,6 @@
+## 26.8.0 (06-10-2026)
+* Update Keycloak version to 26.8.0 (FKP-37)
+
 ## 26.7.3 (29-09-2026)
 * Update Keycloak version to 26.7.4 (FKP-36)
 
