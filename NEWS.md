@@ -1,4 +1,4 @@
-## 26.8.1 (in progress)
+## 26.8.1 (03-11-2026)
 * Update Keycloak version to 26.8.1
 
 ## 26.8.0 (06-10-2026)
