@@ -1,3 +1,6 @@
+## 26.8.2 (09-11-2026)
+* Update Keycloak version to 26.8.2 (KEYCLOAK-137)
+
 ## 26.8.1 (03-11-2026)
 * Update Keycloak version to 26.8.1
 
