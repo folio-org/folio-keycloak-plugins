@@ -41,3 +41,6 @@ build/
 .codemie/
 .claude/
 .agents/
+
+## Task workspaces
+/.tasks/
