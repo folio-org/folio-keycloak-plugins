@@ -450,7 +450,8 @@ class FolioEcsUsernamePasswordFormTest {
     bindFederatedIdentity(userModel);
     createPasswordHashProvider(null);
     when(loginFormsProvider.addError(any())).thenReturn(loginFormsProvider);
-    when(loginFormsProvider.createLoginUsernamePassword()).thenReturn(mock(Response.class));
+    var errorPage = mock(Response.class);
+    when(loginFormsProvider.createLoginUsernamePassword()).thenReturn(errorPage);
 
     try (var mockedStatic = mockStatic(EntityUtils.class)) {
       var httpResponse = createHttpResponse(HttpStatus.SC_UNAUTHORIZED);
@@ -466,7 +467,7 @@ class FolioEcsUsernamePasswordFormTest {
       var inOrder = inOrder(context, loginFormsProvider);
       inOrder.verify(context).clearUser();
       inOrder.verify(loginFormsProvider).createLoginUsernamePassword();
-      inOrder.verify(context).failureChallenge(eq(AuthenticationFlowError.INVALID_CREDENTIALS), any(Response.class));
+      inOrder.verify(context).failureChallenge(AuthenticationFlowError.INVALID_CREDENTIALS, errorPage);
     }
   }
 
