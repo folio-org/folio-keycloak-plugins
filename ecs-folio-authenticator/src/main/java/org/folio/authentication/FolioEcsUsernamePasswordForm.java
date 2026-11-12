@@ -155,10 +155,10 @@ public class FolioEcsUsernamePasswordForm extends UsernamePasswordForm {
     context.getEvent().user(user);
     context.getEvent().error(Errors.INVALID_USER_CREDENTIALS);
     context.getAuthenticationSession().removeAuthNote(USER_SET_BEFORE_USERNAME_PASSWORD_AUTH);
+    context.clearUser();
 
     Response challengeResponse = challenge(context, Messages.INVALID_USER, FIELD_USERNAME);
     context.failureChallenge(AuthenticationFlowError.INVALID_CREDENTIALS, challengeResponse);
-    context.clearUser();
     return false;
   }
 

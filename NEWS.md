@@ -1,3 +1,6 @@
+## 26.8.3 (In Progress)
+* Fix the "Restart login" link shown after a wrong password for ECS member-tenant users (FKP-40)
+
 ## 26.8.2 (09-11-2026)
 * Update Keycloak version to 26.8.2 (KEYCLOAK-137)
 

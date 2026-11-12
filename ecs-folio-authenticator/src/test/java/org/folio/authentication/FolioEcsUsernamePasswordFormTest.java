@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.atMostOnce;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -435,6 +436,37 @@ class FolioEcsUsernamePasswordFormTest {
       assertFalse(result);
 
       verify(userModel.credentialManager(), never()).isValid(any(CredentialInput[].class));
+    }
+  }
+
+  @Test
+  void testValidatePasswordWithFederatedIdentityAndWithWrongPassword() throws IOException {
+    createIdentityProviderByAlias(createIdentityProviderModelObj());
+    var oidcIdentityProviderConfig = createOidcIdentityProviderConfig();
+    createOidcIdentityProvider(oidcIdentityProviderConfig);
+    var federatedIdentityModel = createFederatedIdentityModelWithRemoveAttr();
+    bindIdentityProviderAndFederatedIdentityModel(federatedIdentityModel);
+    var userModel = createInMemoryUserAdapterUserModel();
+    bindFederatedIdentity(userModel);
+    createPasswordHashProvider(null);
+    when(loginFormsProvider.addError(any())).thenReturn(loginFormsProvider);
+    when(loginFormsProvider.createLoginUsernamePassword()).thenReturn(mock(Response.class));
+
+    try (var mockedStatic = mockStatic(EntityUtils.class)) {
+      var httpResponse = createHttpResponse(HttpStatus.SC_UNAUTHORIZED);
+      var httpEntity = createHttpEntity(httpResponse);
+      var httpClient = createHttpClient(httpResponse, mockedStatic, httpEntity, "");
+      createHttpClientProvider(httpClient);
+
+      var result = usernamePasswordForm.validatePassword(context, userModel, createFormDataObj(USERNAME), true);
+
+      assertFalse(result);
+
+      // The user must be cleared before the error page is rendered, otherwise the page shows "Restart login"
+      var inOrder = inOrder(context, loginFormsProvider);
+      inOrder.verify(context).clearUser();
+      inOrder.verify(loginFormsProvider).createLoginUsernamePassword();
+      inOrder.verify(context).failureChallenge(eq(AuthenticationFlowError.INVALID_CREDENTIALS), any(Response.class));
     }
   }
 
